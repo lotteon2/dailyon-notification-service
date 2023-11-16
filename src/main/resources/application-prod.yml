@@ -1,0 +1,28 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+    import: optional:configserver:http://config-service:8888
+  # rabbitmq settings
+  rabbitmq:
+    host: rabbitmq-service
+    port: 5672
+    username: guest
+    password: guest
+  # mongodb settings
+  data:
+    mongodb:
+      username: root
+      password: 11111111
+      uri: mongodb://localhost:27017/notification-service
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://discovery-service:8761/eureka
+  instance:
+    instance-id: ${spring.application.name}:${server.port}
+    # 기본적으로 유레카는 '호스트 이름'으로 접속하는 서비스를 레지스트리에 등록 -> 로컬(localhost)
+    # 따라서 쿠버네티스, 도커와 같이 임의의 호스트 이름을 가지는 경우는 false로 하면 클라이언트를 인식하지 못한다.
+    prefer-ip-address: true

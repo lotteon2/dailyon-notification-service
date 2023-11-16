@@ -1,0 +1,43 @@
+spring:
+  config:
+    activate:
+      on-profile: local
+    import: optional:configserver:http://127.0.0.1:8888
+  # rabbitmq settings
+  rabbitmq:
+    host: 127.0.0.1
+    port: 5672
+    username: guest
+    password: guest
+  datasource:
+
+  # mongodb settings
+  data:
+    mongodb:
+      username: root
+      password: 11111111
+      uri: mongodb://localhost:27017/notification-service
+  jpa:
+    hibernate:
+      ddl-auto: create
+    generate-ddl: true
+    # Bean이 생성되기 전에 ddl 실행
+    defer-datasource-initialization: true
+    properties:
+      hibernate:
+        format_sql: true
+
+eureka:
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+    service-url:
+      defaultZone: http://127.0.0.1:8761/eureka
+  instance:
+    instance-id: ${spring.application.name}:${server.port}
+
+logging:
+  level:
+    org:
+      hibernate:
+        SQL: DEBUG

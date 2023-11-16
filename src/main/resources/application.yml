@@ -1,0 +1,13 @@
+server:
+  port: 8082
+spring:
+  config:
+    activate:
+      on-profile: local,dev,prod
+  application:
+    name: notification-service
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, refresh, busrefresh
