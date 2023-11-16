@@ -1,0 +1,2 @@
+# dailyon-notification-service
+notifications
