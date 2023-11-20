@@ -35,6 +35,8 @@ jobs:
           java-version: '11'
           distribution: 'corretto'
           cache: gradle
+      - name: Grant execute permission to gradlew
+        run: chmod +x gradlew
       - name: Build with Gradle
         run: ./gradlew build
         shell: bash
@@ -51,6 +53,8 @@ jobs:
           java-version: '11'
           distribution: 'corretto'
           cache: gradle
+      - name: Grant execute permission to gradlew
+        run: chmod +x gradlew
       - name: Test with Gradle
         run: ./gradlew test
         shell: bash
@@ -67,6 +71,8 @@ jobs:
           java-version: '11'
           distribution: 'corretto'
           cache: gradle
+      - name: Grant execute permission to gradlew
+        run: chmod +x gradlew
       - name: build with Gradle without test
         run: ./gradlew build -x test
         shell: bash
