@@ -1,4 +1,4 @@
-name: Deploy development profile about lotdiz
+name: Deploy development profile about dailyon
 on:
   workflow_dispatch:
   push:
