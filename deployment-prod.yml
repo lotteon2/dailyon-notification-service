@@ -92,6 +92,8 @@ spec:
         - name: notification-ebs-pv
           persistentVolumeClaim:
             claimName: notification-ebs-pvc
+      # SIGTERM을 받아도 바로 종료되지 않고 90초 뒤에 종료
+      terminationGracePeriodSeconds: 90
       restartPolicy: Always
       affinity:
         nodeAffinity:
