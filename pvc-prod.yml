@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: notification-ebs-pvc
+  namespace: prod
+spec:
+  storageClassName: ""
+  accessModes:
+    - ReadWriteMany # 여러개의 노드가 Read/Write 가능하도록 마운트
+  resources:
+    requests:
+      storage: 5Gi # 볼륨 크기가 최소 5Gi인 퍼시스턴트 볼륨과 연결

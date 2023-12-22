@@ -72,6 +72,9 @@ spec:
               value: "11111111"
             - name: MONGO_INITDB_DATABASE
               value: notification-service
+          volumeMounts:
+            - name: notification-ebs-pv
+              mountPath: /data/db
           imagePullPolicy: IfNotPresent
           # 애플리케이션이 시작된 뒤 초기화 작업이 마무리되어 준비되었는지 검사
           readinessProbe:
@@ -85,6 +88,10 @@ spec:
               port: 27017
             initialDelaySeconds: 20
             periodSeconds: 20
+      volumes:
+        - name: notification-ebs-pv
+          persistentVolumeClaim:
+            claimName: notification-ebs-pvc
       restartPolicy: Always
       affinity:
         nodeAffinity:
