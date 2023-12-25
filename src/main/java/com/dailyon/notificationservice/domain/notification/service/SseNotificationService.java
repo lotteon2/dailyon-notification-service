@@ -19,7 +19,35 @@ public class SseNotificationService {
     private final ConcurrentHashMap<Long, EmitterProcessor<ServerSentEvent<NotificationTemplate>>> userEmitters
             = new ConcurrentHashMap<>();
 
+    // 구독하기
+    public Flux<ServerSentEvent<NotificationTemplate>> streamNotifications(Long memberId) {
+        EmitterProcessor<ServerSentEvent<NotificationTemplate>> emitter = EmitterProcessor.create();
+        userEmitters.put(memberId, emitter);
 
+        Consumer<Throwable> removeEmitterConsumer = e -> userEmitters.remove(memberId);
+
+        return emitter
+                .doOnCancel(() -> removeEmitterConsumer.accept(null))
+                .doOnError(removeEmitterConsumer);
+    }
+
+    public void pushNotificationToMember(NotificationTemplate notification, Long memberId) {
+        EmitterProcessor<ServerSentEvent<NotificationTemplate>> emitter = userEmitters.get(memberId);
+        if (emitter != null && !emitter.isTerminated()) {
+            emitter.onNext(ServerSentEvent.builder(notification)
+                    .event("notification-event")
+                    .id(String.valueOf(notification.getId()))
+                    .build());
+        }
+    }
+
+    // Imagine a method that is called by a Kafka listener just like in the original SseService.java
+    // Here we illustrate how it might look by just using a placeholder
+    // SQS 받으면 작성할 로직
+    public Mono<Void> onNotificationReceived(NotificationTemplate notification, Long memberId) {
+        return Mono.fromRunnable(() -> pushNotificationToMember(notification, memberId))
+                .then(Mono.empty());
+    }
     
 
 }
