@@ -1,4 +1,4 @@
-name: Build development profile about dailyon
+name: Build production profile about dailyon
 on:
   workflow_dispatch:
   pull_request:
