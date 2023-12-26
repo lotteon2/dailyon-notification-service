@@ -9,7 +9,7 @@ spec:
   capacity:
     storage: 5Gi # 볼륨의 크기
   accessModes:
-    - ReadWriteOnce # 하나 Pod에 마운트
+    - ReadWriteOnce # 하나의 Pod에 마운트
   awsElasticBlockStore:
     volumeID: vol-0642c9d9b892e0c4c
   persistentVolumeReclaimPolicy: Retain

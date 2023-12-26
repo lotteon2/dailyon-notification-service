@@ -6,7 +6,7 @@ metadata:
 spec:
   storageClassName: gp2
   accessModes:
-    - ReadWriteOnce # 여러개의 노드가 Read/Write 가능하도록 마운트
+    - ReadWriteOnce # 하나의 노드가 Read/Write 가능하도록 마운트
   resources:
     requests:
       storage: 5Gi # 볼륨 크기가 최소 5Gi인 퍼시스턴트 볼륨과 연결
