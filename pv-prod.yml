@@ -5,6 +5,7 @@ metadata:
   namespace: prod
 spec:
   volumeMode: Filesystem
+  storageClassName: gp2
   capacity:
     storage: 5Gi # 볼륨의 크기
   accessModes:
