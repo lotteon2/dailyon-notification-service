@@ -1,23 +1,25 @@
 package com.dailyon.notificationservice.domain.notification.service;
 
 import com.dailyon.notificationservice.domain.notification.document.NotificationTemplate;
+import com.dailyon.notificationservice.domain.notification.document.UserNotification;
+import com.dailyon.notificationservice.domain.notification.dto.NotificationData;
 import com.dailyon.notificationservice.domain.notification.repository.NotificationTemplateRepository;
 import com.dailyon.notificationservice.domain.notification.repository.UserNotificationRepository;
-import com.dailyon.notificationservice.domain.notification.document.UserNotification;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Sort;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.data.mongodb.core.ReactiveMongoOperations;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.data.mongodb.core.query.Update;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @Transactional(readOnly = true)
@@ -27,63 +29,77 @@ public class NotificationService {
     private final UserNotificationRepository userNotificationRepository;
     private final ReactiveMongoOperations mongoOperations;
 
-    // 최근 5개 알림 받기
-    public Flux<NotificationTemplate> getRecentNotifications(Long memberId) {
-        // 여기서는 유저의 최근 알림 ID를 조회하고 NotificationTemplate에서 ID에 해당하는 내용을 가져옵니다.
-        return userNotificationRepository.findTop5ByMemberIdAndDeletedFalseOrderByCreatedAtDesc(memberId, Sort.by(Sort.Direction.DESC, "createdAt"))
-                .flatMap(userNotification -> notificationTemplateRepository.findById(userNotification.getId()));
+    // 최근 5개 unread 알림 받기
+    public Flux<NotificationData> getRecentNotifications(Long memberId) {
+        return userNotificationRepository.findByMemberId(memberId)
+                .flatMapMany(userNotification -> notificationTemplateRepository.findByIdIn(userNotification.getUnread()))
+                .sort(Comparator.comparing(NotificationTemplate::getCreatedAt).reversed())
+                .take(5)
+                .map(NotificationData::from);
     }
 
-    // 모든 알림 조회
-    public Flux<NotificationTemplate> getAllNotifications(Long memberId) {
-        // 여기서는 유저의 모든 알림 ID를 조회하고 NotificationTemplate에서 ID에 해당하는 내용을 가져옵니다.
-        return userNotificationRepository.findByMemberIdAndDeletedFalseOrderByCreatedAtDesc(memberId, Sort.by(Sort.Direction.DESC, "createdAt"))
-                .flatMap(userNotification -> notificationTemplateRepository.findById(userNotification.getId()));
+    // 모든 알림 조회 (unread 및 read)
+    public Flux<NotificationData> getAllNotifications(Long memberId) {
+        return userNotificationRepository.findByMemberId(memberId)
+                .flatMapMany(userNotification -> {
+                    Stream<String> unreadStream = userNotification.getUnread().stream();
+                    Stream<String> readStream = userNotification.getRead().stream();
+                    // unread, read 를 단일 ID list로 합침
+                    List<String> combinedIds = Stream.concat(unreadStream, readStream)
+                            .collect(Collectors.toList());
+                    return notificationTemplateRepository.findByIdIn(combinedIds);
+                })
+                .map(NotificationData::from);
     }
 
     // 안읽은 알림 개수 받기
-    public Mono<Long> countUnreadNotifications(Long memberId) {
+    public Mono<Integer> countUnreadNotifications(Long memberId) {
         // 여기서는 UserNotification에서 unread 상태인 알림의 수를 계산합니다.
-        return userNotificationRepository.countByMemberIdAndUnreadNotInAndDeletedFalse(memberId, new ArrayList<>());
+        return userNotificationRepository.findByMemberId(memberId)
+                .map(UserNotification::getUnread)
+                .map(Set::size)
+                .switchIfEmpty(Mono.just(0)); // 문서가 없거나 unread 집합이 없는 경우 0 반환
     }
+
 
     // 모든 알림 읽음 처리
     @Transactional
     public Mono<Void> markAllNotificationsAsRead(Long memberId) {
-        Query query = Query.query(Criteria.where("memberId").is(memberId));
-        Update update = new Update().set("read", true);
-
-        return mongoOperations.updateMulti(query, update, UserNotification.class)
-                .then();
+        return userNotificationRepository.findByMemberId(memberId)
+                .flatMap(userNotification -> {
+                    userNotification.markAsReadAllNotifications();
+                    return userNotificationRepository.save(userNotification);
+                }).then();
     }
 
     // 개별 알림 읽음처리
+    @Transactional
     public Mono<Void> markNotificationAsRead(String notificationId, Long memberId) {
-        Query query = new Query(Criteria.where("memberId").is(memberId).and("unread").is(notificationId));
-        Update update = new Update().pull("unread", notificationId).addToSet("read", notificationId);
-
-        return mongoOperations.findAndModify(query, update, UserNotification.class)
-                .then();
+        return userNotificationRepository.findByMemberId(memberId)
+                .flatMap(userNotification -> {
+                    userNotification.markAsRead(notificationId);
+                    return userNotificationRepository.save(userNotification);
+                }).then();
     }
 
     // 모든 알림 삭제
+    @Transactional
     public Mono<Void> deleteAllNotifications(Long memberId) {
-        Query query = Query.query(Criteria.where("memberId").is(memberId).and("deleted").is(false));
-        Update update = new Update().set("deleted", true);
-
-        return mongoOperations.updateMulti(query, update, UserNotification.class)
-                .then();
+        return userNotificationRepository.findByMemberId(memberId)
+                .flatMap(userNotification -> {
+                    userNotification.deleteAllNotifications();
+                    return userNotificationRepository.save(userNotification);
+                }).then();
     }
 
     // 개별 알림 삭제
+    @Transactional
     public Mono<Void> deleteNotification(String notificationId, Long memberId) {
-        Query query = new Query(Criteria.where("memberId").is(memberId).andOperator(
-                Criteria.where("unread").is(notificationId).orOperator(Criteria.where("read").is(notificationId))));
-        Update update = new Update().pullAll("unread", new String[]{notificationId})
-                .pullAll("read", new String[]{notificationId})
-                .addToSet("deleted", notificationId);
-
-        return mongoOperations.findAndModify(query, update, UserNotification.class)
-                .then();
+        return userNotificationRepository
+                .findByMemberId(memberId)
+                .flatMap(userNotification -> {
+                    userNotification.deleteNotification(notificationId);
+                    return userNotificationRepository.save(userNotification);
+                }).then();
     }
 }
