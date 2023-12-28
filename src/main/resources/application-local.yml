@@ -9,14 +9,17 @@ spring:
     port: 5672
     username: guest
     password: guest
-  datasource:
 
   # mongodb settings
   data:
     mongodb:
       username: root
       password: 11111111
-      uri: mongodb://localhost:27017/notification-service
+      uri: mongodb://root:11111111@localhost:27017/notification-service?authSource=admin
+
+embedded:
+  mongodb:
+    version: 5.0.6
 
 eureka:
   client:
