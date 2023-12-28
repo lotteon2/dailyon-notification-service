@@ -21,9 +21,10 @@ public class RestockNotification {
     @Id
     private String id;
 
+    // 유일한 복합키로 관리
     private String productId;
-
     private String sizeId;
 
+    // 재입고 신청한 memberIds
     private List<Long> memberIds;
 }
