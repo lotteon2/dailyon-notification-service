@@ -31,10 +31,10 @@ spec:
           resources:
             requests:
               memory: "256Mi"
-              cpu: "500m"
+              cpu: "125m"
             limits:
-              memory: "512Mi"
-              cpu: "1000m"
+              memory: "384Mi"
+              cpu: "250m"
           ports:
             - containerPort: 8082
           imagePullPolicy: IfNotPresent
@@ -43,7 +43,7 @@ spec:
             httpGet:
               path: /actuator/health/readiness
               port: 8082
-            initialDelaySeconds: 30
+            initialDelaySeconds: 240
             periodSeconds: 30
             timeoutSeconds: 2
           # 애플리케이션이 정상 상태를 유지하고 있는지 지속해서 검사
@@ -51,49 +51,11 @@ spec:
             httpGet:
               path: /actuator/health/liveness
               port: 8082
-            initialDelaySeconds: 30
+            initialDelaySeconds: 240
             periodSeconds: 30
             timeoutSeconds: 2
-        - name: mongo
-          image: mongo:latest
-          resources:
-            requests:
-              memory: "256Mi"
-              cpu: "500m"
-            limits:
-              memory: "512Mi"
-              cpu: "1000m"
-          ports:
-            - containerPort: 27017
-          env:
-            - name: MONGO_INITDB_ROOT_USERNAME
-              value: root
-            - name: MONGO_INITDB_ROOT_PASSWORD
-              value: "11111111"
-            - name: MONGO_INITDB_DATABASE
-              value: notification-service
-          volumeMounts:
-            - name: notification-ebs-pv
-              mountPath: /data/db
-          imagePullPolicy: IfNotPresent
-          # 애플리케이션이 시작된 뒤 초기화 작업이 마무리되어 준비되었는지 검사
-          readinessProbe:
-            tcpSocket:
-              port: 27017
-            initialDelaySeconds: 20
-            periodSeconds: 20
-          # 애플리케이션이 정상 상태를 유지하고 있는지 지속해서 검사
-          livenessProbe:
-            tcpSocket:
-              port: 27017
-            initialDelaySeconds: 20
-            periodSeconds: 20
-      volumes:
-        - name: notification-ebs-pv
-          persistentVolumeClaim:
-            claimName: notification-ebs-pvc
       # SIGTERM을 받아도 바로 종료되지 않고 90초 뒤에 종료
-      terminationGracePeriodSeconds: 90
+      terminationGracePeriodSeconds: 300
       restartPolicy: Always
       affinity:
         nodeAffinity:
