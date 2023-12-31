@@ -6,7 +6,7 @@ import java.util.List;
 
 @Data
 public class SQSNotificationDto {
-    List<Long> whoToNotify;
+    List<Long> whoToNotify; // if null, 전체유저에게 발송
 
-    NotificationData notificationData;
+    RawNotificationData rawNotificationData;
 }
