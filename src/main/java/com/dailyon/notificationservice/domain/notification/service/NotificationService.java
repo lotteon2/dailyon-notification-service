@@ -16,6 +16,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -101,5 +102,15 @@ public class NotificationService {
                     userNotification.deleteNotification(notificationId);
                     return userNotificationRepository.save(userNotification);
                 }).then();
+    }
+
+    public Mono<Void> createInitialUserNotification(Long memberId) {
+        UserNotification newUserNotification = UserNotification.builder()
+                .memberId(memberId)
+                .unread(new HashSet<>())
+                .read(new HashSet<>())
+                .deleted(new HashSet<>())
+                .build();
+        return userNotificationRepository.insert(newUserNotification).then();
     }
 }
