@@ -36,21 +36,20 @@ public class NotificationService {
                 .flatMapMany(userNotification -> notificationTemplateRepository.findByIdIn(userNotification.getUnread()))
                 .sort(Comparator.comparing(NotificationTemplate::getCreatedAt).reversed())
                 .take(5)
-                .map(NotificationData::from);
+                .map(template -> NotificationData.from(template, false));
     }
 
     // 모든 알림 조회 (unread 및 read)
     public Flux<NotificationData> getAllNotifications(Long memberId) {
         return userNotificationRepository.findByMemberId(memberId)
                 .flatMapMany(userNotification -> {
-                    Stream<String> unreadStream = userNotification.getUnread().stream();
-                    Stream<String> readStream = userNotification.getRead().stream();
-                    // unread, read 를 단일 ID list로 합침
-                    List<String> combinedIds = Stream.concat(unreadStream, readStream)
-                            .collect(Collectors.toList());
-                    return notificationTemplateRepository.findByIdIn(combinedIds);
-                })
-                .map(NotificationData::from);
+                    Flux<NotificationData> unreadNotifications = notificationTemplateRepository.findByIdIn(userNotification.getUnread())
+                            .map(template -> NotificationData.from(template, false));
+                    Flux<NotificationData> readNotifications = notificationTemplateRepository.findByIdIn(userNotification.getRead())
+                            .map(template -> NotificationData.from(template, true));
+
+                    return Flux.concat(unreadNotifications, readNotifications); // Fluxes 단일로 합쳐서 return
+                });
     }
 
     // 안읽은 알림 개수 받기
