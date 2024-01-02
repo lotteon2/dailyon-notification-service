@@ -17,13 +17,15 @@ public class NotificationData {
     private String message;
     private String linkUrl;
     private NotificationType notificationType;
+    private Boolean read;
 
-    public static NotificationData from(NotificationTemplate notificationTemplate) {
+    public static NotificationData from(NotificationTemplate notificationTemplate, Boolean read) {
         return NotificationData.builder()
                     .id(notificationTemplate.getId())
                     .message(notificationTemplate.getMessage())
                     .linkUrl(notificationTemplate.getLinkUrl())
                     .notificationType(notificationTemplate.getNotificationType())
+                    .read(read)
                     .build();
 
     }
@@ -37,6 +39,7 @@ public class NotificationData {
                 .message(message)
                 .linkUrl(linkUrl)
                 .notificationType(rawNotificationData.getNotificationType())
+                .read(false)
                 .build();
     }
 
