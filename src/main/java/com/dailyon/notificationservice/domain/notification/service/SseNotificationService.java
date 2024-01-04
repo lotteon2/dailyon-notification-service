@@ -70,7 +70,7 @@ public class SseNotificationService {
         .flatMap(savedTemplate ->
             updateMultipleUserNotifications(memberIds, savedTemplate.getId())
                 .thenMany(Flux.fromIterable(memberIds))
-                .flatMap(memberId -> sendSseNotificationToUser(NotificationData.from(savedTemplate), memberId))
+                .flatMap(memberId -> sendSseNotificationToUser(NotificationData.from(savedTemplate, false), memberId))
                 .then()
         );
     }
