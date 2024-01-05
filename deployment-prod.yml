@@ -30,11 +30,11 @@ spec:
           image: ${ECR_REGISTRY}/${AWS_ECR_REPOSITORY}:${IMAGE_TAG}
           resources:
             requests:
-              memory: "256Mi"
-              cpu: "125m"
-            limits:
-              memory: "384Mi"
+              memory: "768Mi"
               cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "300m"
           ports:
             - containerPort: 8082
           imagePullPolicy: IfNotPresent
@@ -54,8 +54,8 @@ spec:
             initialDelaySeconds: 240
             periodSeconds: 30
             timeoutSeconds: 2
-      # SIGTERM을 받아도 바로 종료되지 않고 90초 뒤에 종료
-      terminationGracePeriodSeconds: 300
+      # SIGTERM을 받아도 바로 종료되지 않고 일정 시간 뒤에 종료
+      terminationGracePeriodSeconds: 360
       restartPolicy: Always
       affinity:
         nodeAffinity:
