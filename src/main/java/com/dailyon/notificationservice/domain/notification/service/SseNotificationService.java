@@ -54,7 +54,7 @@ public class SseNotificationService {
                 .doOnError(removeSinkConsumer);
     }
 
-    // Kafka listener 대신 SQS를 쓰기로 결정.
+
     public Mono<Void> onNotificationReceived(NotificationData data, List<Long> memberIds) {
         // NotificationTemplate 저장 우선
         return notificationTemplateRepository.save(
@@ -65,10 +65,12 @@ public class SseNotificationService {
                     .build()
         )
         // DB에 알림 template 저장 후, UserNotifications업데이트, SSE 송출.
+        // TODO: if memberIds is null, 모든 유저에게 업데이트 및 송출 (유저가 1000만명이면 이거를 다 보내줘야할텐데 이게 맞나? SSE만 송출할까?)
+        // TODO: 어떤 알림이 나갈지 현실적으로 보고 의사결정
         .flatMap(savedTemplate ->
             updateMultipleUserNotifications(memberIds, savedTemplate.getId())
                 .thenMany(Flux.fromIterable(memberIds))
-                .flatMap(memberId -> sendSseNotificationToUser(data, memberId))
+                .flatMap(memberId -> sendSseNotificationToUser(NotificationData.from(savedTemplate, false), memberId))
                 .then()
         );
     }

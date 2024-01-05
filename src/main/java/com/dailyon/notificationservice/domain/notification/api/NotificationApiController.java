@@ -5,12 +5,21 @@ import com.dailyon.notificationservice.domain.notification.dto.NotificationData;
 import com.dailyon.notificationservice.domain.notification.service.NotificationService;
 import com.dailyon.notificationservice.domain.notification.service.SseNotificationService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cloud.aws.messaging.core.QueueMessagingTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+
+import com.amazonaws.services.sqs.model.SendMessageResult;
+import org.springframework.cloud.aws.messaging.core.QueueMessagingTemplate;
+import org.springframework.integration.support.MessageBuilder;
+import org.springframework.messaging.Message;
+
+@Slf4j
 @RestController
 @RequestMapping("/notifications")
 @RequiredArgsConstructor
@@ -18,6 +27,17 @@ public class NotificationApiController {
 
     private final NotificationService notificationService;
     private final SseNotificationService sseNotificationService;
+
+    // SQS 발행 테스트용 임시 코드
+//    private final QueueMessagingTemplate queueMessagingTemplate;
+//    private final String notificationQueue = "order-complete-notification-queue";
+//    @PostMapping("/publish")
+//    public void publishMessageToSqs(@RequestBody String notificationMessage) {
+//        log.debug(notificationMessage);
+//        Message<String> message = MessageBuilder.withPayload(notificationMessage).build();
+//        queueMessagingTemplate.send(notificationQueue, message);
+//    }
+
 
     // 최근 unread 알림 5개 받기 - 테스트완료
     @GetMapping("")
@@ -63,7 +83,7 @@ public class NotificationApiController {
         return notificationService.deleteAllNotifications(memberId);
     }
 
-    // 구독하기 - 테스트완료 (SQS와 통합한 테스트 필요)
+    // 구독하기 - 테스트완료 (SQS와 통합한 테스트 - 완료)
     @GetMapping(value = "/subscription", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<NotificationData>> subscribeToNotifications(@RequestHeader Long memberId) {
         return sseNotificationService.streamNotifications(memberId);

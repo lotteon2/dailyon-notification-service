@@ -24,8 +24,8 @@ public class UserNotification {
     @Id
     private String id;
 
-    // 알림 연결시 memberId로 찾기 위해 index 추가
-    @Indexed
+    // aggregation 최적화 위해 index 추가.
+    @Indexed(unique = true)
     private Long memberId;
 
     @CreatedDate
