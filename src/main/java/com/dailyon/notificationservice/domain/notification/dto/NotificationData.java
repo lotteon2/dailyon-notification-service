@@ -46,7 +46,7 @@ public class NotificationData {
     }
 
     private static String generateLinkUrl(NotificationType notificationType, Map<String, String> parameters) {
-        String baseUrl = "";
+        String baseUrl = "https://dailyon.lotteedu.com";
 
         switch (notificationType) {
             case PRODUCT_RESTOCK:
@@ -76,6 +76,7 @@ public class NotificationData {
         String productName = parameters.getOrDefault("productName", "");
         String productId = parameters.getOrDefault("productId", "");
         String point = parameters.getOrDefault("point", "");
+        String nickname = parameters.getOrDefault("nickname", "");
 
         switch (notificationType) {
             case PRODUCT_RESTOCK:
@@ -87,7 +88,8 @@ public class NotificationData {
             case ORDER_ARRIVED:
                 return String.format("주문번호: %s 의 배송이 완료되었습니다.", orderId);
             case GIFT_RECEIVED:
-                return "선물이 도착했습니다. 선물함을 확인해주세요.";
+                String giftPrefix = !nickname.isEmpty() ? nickname + "님을 위한 " : "";
+                return String.format("%s선물이 도착했습니다. 선물함을 확인해주세요.", giftPrefix);
             case POINTS_EARNED_SNS:
                 return String.format("OOTD 게시글을 통한 상품 판매로 포인트가 적립되었습니다: %s P", point);
             case AUCTION_END:
