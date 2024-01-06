@@ -63,6 +63,59 @@ public class NotificationSQSListener {
         }
     }
 
+    @SqsListener(
+            value = "product-restock-notification-queue",
+            deletionPolicy = SqsMessageDeletionPolicy.NEVER)
+    public void consumeProductRestockNotificationCheckQueue(
+            @Payload String message, @Headers Map<String, String> headers, Acknowledgment ack) {
+        log.warn(message);
+        ack.acknowledge();
+    }
+
+    @SqsListener(
+            value = "order-shipped-notification-queue",
+            deletionPolicy = SqsMessageDeletionPolicy.NEVER)
+    public void consumeOrderShippedNotificationCheckQueue(
+            @Payload String message, @Headers Map<String, String> headers, Acknowledgment ack) {
+        log.warn(message);
+        ack.acknowledge();
+    }
+
+    @SqsListener(
+            value = "order-arrived-notification-queue",
+            deletionPolicy = SqsMessageDeletionPolicy.NEVER)
+    public void consumeOrderArrivedNotificationCheckQueue(
+            @Payload String message, @Headers Map<String, String> headers, Acknowledgment ack) {
+        log.warn(message);
+        ack.acknowledge();
+    }
+
+    @SqsListener(
+            value = "auction-end-notification-queue",
+            deletionPolicy = SqsMessageDeletionPolicy.NEVER)
+    public void consumeAuctionEndNotificationCheckQueue(
+            @Payload String message, @Headers Map<String, String> headers, Acknowledgment ack) {
+        log.warn(message);
+        ack.acknowledge();
+    }
+
+    @SqsListener(
+            value = "gift-received-notification-queue",
+            deletionPolicy = SqsMessageDeletionPolicy.NEVER)
+    public void consumeGiftReceivedNotificationCheckQueue(
+            @Payload String message, @Headers Map<String, String> headers, Acknowledgment ack) {
+        log.warn(message);
+        ack.acknowledge();
+    }
+
+    @SqsListener(
+            value = "points-earned-sns-notification-queue",
+            deletionPolicy = SqsMessageDeletionPolicy.NEVER)
+    public void consumePointsEarnedBySNSNotificationCheckQueue(
+            @Payload String message, @Headers Map<String, String> headers, Acknowledgment ack) {
+        log.warn(message);
+        ack.acknowledge();
+    }
 
     @SqsListener(
             value = "user-created-queue",
