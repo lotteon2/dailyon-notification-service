@@ -11,10 +11,13 @@ import java.util.Map;
 @Builder
 @AllArgsConstructor
 public class RawNotificationData {
+    /*
+    message를 따로 넣어주면 해당 메세지로 발송,
+    null 혹은 empty string으로 주면 NotificationType에 따라 parameters를 조합해 가공됨.
+     */
     private String message;
 
-    // notification type과 parameters를 조합하여 linkUrl을 생성
-    // notification type에 따라 parameters 조합하여 message 재가공 (type에 따라 할 수도 있고 안할수도 있음)
+    // NotificationType과 parameters를 조합하여 linkUrl을 생성
     private Map<String, String> parameters;
     private NotificationType notificationType; // 알림 유형
 }
