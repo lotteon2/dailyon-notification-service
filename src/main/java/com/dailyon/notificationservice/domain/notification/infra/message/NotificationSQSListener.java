@@ -1,9 +1,11 @@
 package com.dailyon.notificationservice.domain.notification.infra.message;
 
+import com.dailyon.notificationservice.common.exceptions.ErrorResponseException;
 import com.dailyon.notificationservice.domain.notification.dto.NotificationData;
 import com.dailyon.notificationservice.domain.notification.dto.RawNotificationData;
 import com.dailyon.notificationservice.domain.notification.dto.SQSNotificationDto;
 import com.dailyon.notificationservice.domain.notification.service.NotificationService;
+import com.dailyon.notificationservice.domain.notification.service.NotificationUtils;
 import com.dailyon.notificationservice.domain.notification.service.SseNotificationService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.cloud.aws.messaging.listener.Acknowledgment;
@@ -27,38 +29,93 @@ public class NotificationSQSListener {
     private final ObjectMapper objectMapper;
     private final SseNotificationService sseNotificationService;
     private final NotificationService notificationService;
+    private final NotificationUtils notificationUtils;
 
     @SqsListener(
             value = "order-complete-notification-queue",
             deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     public void consumeOrderCompleteNotificationCheckQueue(
-            @Payload String message, @Headers Map<String, String> headers, Acknowledgment ack)
-            throws JsonProcessingException {
+            @Payload String message, @Headers Map<String, String> headers, Acknowledgment ack) {
 
         try {
-            // objectMapper 이용, 들어오는 message를 DTO를 변환 -> 이후 NotificationTemplate 객체 build.
             SQSNotificationDto sqsNotificationDto = objectMapper.readValue(message, SQSNotificationDto.class);
             RawNotificationData rawNotificationData = sqsNotificationDto.getRawNotificationData();
+            NotificationData notificationData = NotificationData.fromRawData(rawNotificationData); // rawNotificationData -> 데이터 가공
 
-            NotificationData notificationData = NotificationData.fromRawData(rawNotificationData); // rawNotificationData -> 가공
+            List<Long> existingMemberIds = sqsNotificationDto.getWhoToNotify();
+            Mono<List<Long>> memberIdsMono = notificationUtils.determineMemberIds( // 알림 수신대상 가공
+                    rawNotificationData.getNotificationType(),
+                    rawNotificationData.getParameters(),
+                    existingMemberIds);
 
-            // memberIds가 null(현재 연결된 모든 유저)/단일/복수일 수 있음. onNotificationReceived에서 관리.
-            List<Long> memberIds = sqsNotificationDto.getWhoToNotify();
-            sseNotificationService.onNotificationReceived(notificationData, memberIds)
+            memberIdsMono
+                    .flatMap(memberIds -> sseNotificationService.onNotificationReceived(notificationData, memberIds))
                     .subscribe(
                             null, // onNext: not needed here
-                            error -> {
-                                // visibility timeout 이후에 다시 처리하기 위해 ack 처리 안함.
-                                log.error("Error processing SQS message: {}", error.getMessage(), error);
-                            },
+                            error -> log.error("Error processing SQS message: {}", error.getMessage(), error),
                             ack::acknowledge
                     );
-        } catch (JsonProcessingException e) {
-            // visibility timeout 이후에 다시 처리하기 위해 ack 처리 안함.
+        } catch (JsonProcessingException | ErrorResponseException processingException) {
+            log.error("Failed to parse SQS message: {}", message, processingException);
+            ack.acknowledge();
+        } catch (Exception e) {
             log.error("Failed to parse SQS message: {}", message, e);
         }
     }
 
+    @SqsListener(
+            value = "product-restock-notification-queue",
+            deletionPolicy = SqsMessageDeletionPolicy.NEVER)
+    public void consumeProductRestockNotificationCheckQueue(
+            @Payload String message, @Headers Map<String, String> headers, Acknowledgment ack) {
+        log.warn(message);
+        ack.acknowledge();
+    }
+
+    @SqsListener(
+            value = "order-shipped-notification-queue",
+            deletionPolicy = SqsMessageDeletionPolicy.NEVER)
+    public void consumeOrderShippedNotificationCheckQueue(
+            @Payload String message, @Headers Map<String, String> headers, Acknowledgment ack) {
+        log.warn(message);
+        ack.acknowledge();
+    }
+
+    @SqsListener(
+            value = "order-arrived-notification-queue",
+            deletionPolicy = SqsMessageDeletionPolicy.NEVER)
+    public void consumeOrderArrivedNotificationCheckQueue(
+            @Payload String message, @Headers Map<String, String> headers, Acknowledgment ack) {
+        log.warn(message);
+        ack.acknowledge();
+    }
+
+    @SqsListener(
+            value = "auction-end-notification-queue",
+            deletionPolicy = SqsMessageDeletionPolicy.NEVER)
+    public void consumeAuctionEndNotificationCheckQueue(
+            @Payload String message, @Headers Map<String, String> headers, Acknowledgment ack) {
+        log.warn(message);
+        ack.acknowledge();
+    }
+
+    @SqsListener(
+            value = "gift-received-notification-queue",
+            deletionPolicy = SqsMessageDeletionPolicy.NEVER)
+    public void consumeGiftReceivedNotificationCheckQueue(
+            @Payload String message, @Headers Map<String, String> headers, Acknowledgment ack) {
+        log.warn(message);
+        ack.acknowledge();
+    }
+
+    @SqsListener(
+            value = "points-earned-sns-notification-queue",
+            deletionPolicy = SqsMessageDeletionPolicy.NEVER)
+    public void consumePointsEarnedBySNSNotificationCheckQueue(
+            @Payload String message, @Headers Map<String, String> headers, Acknowledgment ack) {
+        log.warn(message);
+        ack.acknowledge();
+    }
 
     @SqsListener(
             value = "user-created-queue",

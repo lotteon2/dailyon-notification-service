@@ -1,9 +1,13 @@
 package com.dailyon.notificationservice.domain.notification.service;
 
+import com.dailyon.notificationservice.common.exceptions.ErrorResponseException;
 import com.dailyon.notificationservice.domain.notification.document.NotificationTemplate;
 import com.dailyon.notificationservice.domain.notification.document.UserNotification;
+import com.dailyon.notificationservice.domain.notification.document.RestockNotification;
+import com.dailyon.notificationservice.domain.notification.document.enums.NotificationType;
 import com.dailyon.notificationservice.domain.notification.dto.NotificationData;
 import com.dailyon.notificationservice.domain.notification.repository.NotificationTemplateRepository;
+import com.dailyon.notificationservice.domain.notification.repository.RestockNotificationRepository;
 import com.dailyon.notificationservice.domain.notification.repository.UserNotificationRepository;
 
 import com.mongodb.client.model.UpdateOneModel;
@@ -26,9 +30,7 @@ import reactor.core.publisher.Sinks;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -38,7 +40,9 @@ import java.util.stream.Collectors;
 public class SseNotificationService {
     private final NotificationTemplateRepository notificationTemplateRepository;
     private final UserNotificationRepository userNotificationRepository;
+    private final RestockNotificationRepository restockNotificationRepository;
     private final ReactiveMongoTemplate reactiveMongoTemplate;
+
     private final Map<Long, Sinks.Many<ServerSentEvent<NotificationData>>> userSinks = new ConcurrentHashMap<>();
     // ConcurrentHashMap을 쓰는것과 Map으로 선언하는것의 차이?
 
@@ -55,25 +59,31 @@ public class SseNotificationService {
     }
 
 
+
+    // DB에 알림 template 저장 후, UserNotifications업데이트, SSE 송출.
     public Mono<Void> onNotificationReceived(NotificationData data, List<Long> memberIds) {
         // NotificationTemplate 저장 우선
         return notificationTemplateRepository.save(
-                NotificationTemplate.builder()
-                    .message(data.getMessage())
-                    .linkUrl(data.getLinkUrl())
-                    .notificationType(data.getNotificationType())
-                    .build()
-        )
-        // DB에 알림 template 저장 후, UserNotifications업데이트, SSE 송출.
-        // TODO: if memberIds is null, 모든 유저에게 업데이트 및 송출 (유저가 1000만명이면 이거를 다 보내줘야할텐데 이게 맞나? SSE만 송출할까?)
-        // TODO: 어떤 알림이 나갈지 현실적으로 보고 의사결정
-        .flatMap(savedTemplate ->
-            updateMultipleUserNotifications(memberIds, savedTemplate.getId())
-                .thenMany(Flux.fromIterable(memberIds))
-                .flatMap(memberId -> sendSseNotificationToUser(NotificationData.from(savedTemplate, false), memberId))
-                .then()
-        );
+                        NotificationTemplate.builder()
+                                .message(data.getMessage())
+                                .linkUrl(data.getLinkUrl())
+                                .notificationType(data.getNotificationType())
+                                .build()
+                )
+                .flatMap(savedTemplate -> {
+                    if (memberIds != null && !memberIds.isEmpty()) {
+                        // 대상들의 UserNotifications document 업데이트, SSE 송출
+                        return updateMultipleUserNotifications(memberIds, savedTemplate.getId())
+                                .thenMany(Flux.fromIterable(memberIds))
+                                .flatMap(memberId -> sendSseNotificationToUser(NotificationData.from(savedTemplate, false), memberId))
+                                .then();
+                    } else {
+                        // 가공 이후에도 memberIds null/empty라면 현재 연결된 모든 유저들에게 나가는 알림이라는 뜻.
+                        return sendSseNotificationToAllUsers(NotificationData.from(savedTemplate, false));
+                    }
+                });
     }
+
 
     private Mono<Void> updateMultipleUserNotifications(List<Long> memberIds, String notificationTemplateId) {
         // 'unread' 필드에 notificationTemplateId를 추가하는 BSON 업데이트 정의
@@ -91,7 +101,6 @@ public class SseNotificationService {
             return new UpdateOneModel<Document>(filter, updateDocument);
         }).collect(Collectors.toList());
 
-
         // 컬렉션을 비동기적으로 가져오기 위한 Mono<MongoCollection<Document>>
         Mono<MongoCollection<Document>> userNotificationCollectionMono = reactiveMongoTemplate.getCollection(collectionName);
 
@@ -103,7 +112,9 @@ public class SseNotificationService {
         // 개별 연산들을 서버에서 파이프라인을 통해 순차적으로 혹은 가능한 범위 내에서 병렬로 안전하게 실행
         // application 단위에서 직접 set에 넣고 save하는게 아니라 $addToSet notificationTemplateId 연산으로 정의하기 때문에 race condition을 막음.
     }
-    
+
+
+
     private Mono<Void> sendSseNotificationToUser(NotificationData data, Long memberId) {
         return Mono.fromRunnable(() -> {
             Optional.ofNullable(userSinks.get(memberId)).ifPresent(sink -> {
@@ -114,4 +125,10 @@ public class SseNotificationService {
             });
         });
     }
+
+    private Mono<Void> sendSseNotificationToAllUsers(NotificationData data) {
+        return Flux.fromIterable(new ArrayList<>(userSinks.keySet()))
+                .flatMap(memberId -> sendSseNotificationToUser(data, memberId)).then();
+    }
+
 }

@@ -34,7 +34,7 @@ public class UserNotification {
     // NotificationTemplate의 id를 hashSet로 가짐. unread, read, deleted로 관리
     @Builder.Default private Set<String> unread = new HashSet<>(); // document 생성시 not null 보장
     @Builder.Default private Set<String> read = new HashSet<>();
-    @Builder.Default private Set<String> deleted = new HashSet<>();
+    @Builder.Default private Set<String> deleted = new HashSet<>(); // deleted를 보관하는게 의미없어서 로직에서 제거했음.
 
     public void markAsRead(String notificationId) {
         unread.remove(notificationId);
@@ -50,12 +50,12 @@ public class UserNotification {
     public void deleteNotification(String notificationId) {
         unread.remove(notificationId);
         read.remove(notificationId);
-        deleted.add(notificationId);
+//        deleted.add(notificationId);
     }
 
     public void deleteAllNotifications() {
-        deleted.addAll(unread);
-        deleted.addAll(read);
+//        deleted.addAll(unread);
+//        deleted.addAll(read);
         unread.clear();
         read.clear();
     }
