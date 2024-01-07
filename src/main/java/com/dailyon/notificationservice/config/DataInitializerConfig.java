@@ -15,6 +15,7 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Set;
 
 @Configuration
 @Profile("local")
@@ -32,9 +33,9 @@ public class DataInitializerConfig {
                     .build();
 
             RestockNotification restockNotification1 = RestockNotification.builder()
-                    .productId("12345")
-                    .sizeId("S")
-                    .memberIds(Arrays.asList(101L, 102L, 103L))
+                    .productId(1L)
+                    .sizeId(1L)
+                    .memberIds(Set.of(101L, 102L, 103L))
                     .build();
 
             // Reactive operations는 non-blocking이라서 subscribe call이 필요함.
