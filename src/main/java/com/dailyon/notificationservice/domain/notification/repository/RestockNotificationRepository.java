@@ -9,5 +9,5 @@ import reactor.core.publisher.Mono;
 
 @Repository
 public interface RestockNotificationRepository extends ReactiveMongoRepository<RestockNotification, String> {
-    Mono<RestockNotification> findByProductIdAndSizeId(String productId, String sizeId);
+    Mono<RestockNotification> findByProductIdAndSizeId(Long productId, Long sizeId);
 }
