@@ -1,9 +1,12 @@
 package com.dailyon.notificationservice.domain.notification.service;
 
+import com.dailyon.notificationservice.domain.notification.api.request.EnrollRestockRequest;
 import com.dailyon.notificationservice.domain.notification.document.NotificationTemplate;
+import com.dailyon.notificationservice.domain.notification.document.RestockNotification;
 import com.dailyon.notificationservice.domain.notification.document.UserNotification;
 import com.dailyon.notificationservice.domain.notification.dto.NotificationData;
 import com.dailyon.notificationservice.domain.notification.repository.NotificationTemplateRepository;
+import com.dailyon.notificationservice.domain.notification.repository.RestockNotificationRepository;
 import com.dailyon.notificationservice.domain.notification.repository.UserNotificationRepository;
 import lombok.RequiredArgsConstructor;
 
@@ -15,10 +18,7 @@ import org.springframework.data.mongodb.core.ReactiveMongoOperations;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -28,6 +28,7 @@ import java.util.stream.Stream;
 public class NotificationService {
     private final NotificationTemplateRepository notificationTemplateRepository;
     private final UserNotificationRepository userNotificationRepository;
+    private final RestockNotificationRepository restockNotificationRepository;
     private final ReactiveMongoOperations mongoOperations;
 
     // 최근 5개 unread 알림 받기
@@ -103,6 +104,34 @@ public class NotificationService {
                 }).then();
     }
 
+    @Transactional
+    public Mono<String> createOrUpdateRestockNotification(Long memberId, EnrollRestockRequest request) {
+        return restockNotificationRepository.findByProductIdAndSizeId(request.getProductId(), request.getSizeId())
+                .switchIfEmpty(createNewRestockNotification(request.getProductId(), request.getSizeId(), memberId))
+                .flatMap(restockNotification -> updateRestockNotification(restockNotification, memberId))
+                .map(RestockNotification::getId);
+    }
+
+    private Mono<RestockNotification> createNewRestockNotification(Long productId, Long sizeId, Long memberId) {
+        RestockNotification newNotification = RestockNotification.builder()
+                .productId(productId)
+                .sizeId(sizeId)
+                .memberIds(new HashSet<>(Collections.singletonList(memberId)))
+                .build();
+        return restockNotificationRepository.save(newNotification);
+    }
+
+    private Mono<RestockNotification> updateRestockNotification(RestockNotification restockNotification, Long memberId) {
+        boolean isNewMember = restockNotification.getMemberIds().add(memberId); // 새로 들어갔는지 여부에 따라 boolean 반환
+        if (isNewMember) {
+            // reactive Mongo는 session or persistence context를 두고 관리하지않음. JPA와 다르게 dirty checking 없이 명시적 save 필요
+            return restockNotificationRepository.save(restockNotification); //
+        } else {
+            return Mono.just(restockNotification);
+        }
+    }
+
+    @Transactional
     public Mono<Void> createInitialUserNotification(Long memberId) {
         UserNotification newUserNotification = UserNotification.builder()
                 .memberId(memberId)
