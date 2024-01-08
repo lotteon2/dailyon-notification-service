@@ -1,5 +1,6 @@
 package com.dailyon.notificationservice.domain.notification.api;
 
+import com.dailyon.notificationservice.domain.notification.api.request.EnrollRestockRequest;
 import com.dailyon.notificationservice.domain.notification.document.NotificationTemplate;
 import com.dailyon.notificationservice.domain.notification.dto.NotificationData;
 import com.dailyon.notificationservice.domain.notification.service.NotificationService;
@@ -18,6 +19,8 @@ import com.amazonaws.services.sqs.model.SendMessageResult;
 import org.springframework.cloud.aws.messaging.core.QueueMessagingTemplate;
 import org.springframework.integration.support.MessageBuilder;
 import org.springframework.messaging.Message;
+
+import javax.validation.Valid;
 
 @Slf4j
 @RestController
@@ -81,6 +84,13 @@ public class NotificationApiController {
     @DeleteMapping("")
     public Mono<Void> deleteAllNotifications(@RequestHeader Long memberId) {
         return notificationService.deleteAllNotifications(memberId);
+    }
+
+    @PostMapping("/restock/enroll")
+    public Mono<String> createOrUpdateRestockNotification(
+            @Valid @RequestBody EnrollRestockRequest enrollRestockRequest,
+            @RequestHeader Long memberId) {
+        return notificationService.createOrUpdateRestockNotification(memberId, enrollRestockRequest);
     }
 
     // 구독하기 - 테스트완료 (SQS와 통합한 테스트 - 완료)

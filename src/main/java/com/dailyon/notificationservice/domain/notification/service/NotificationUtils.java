@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -31,15 +32,10 @@ public class NotificationUtils {
     // 대상이 정해지지 않은 memberIds를 가공
     private Mono<List<Long>> determineMemberIdsForNotification(NotificationType notificationType, Map<String, String> parameters) {
         if (NotificationType.PRODUCT_RESTOCK.equals(notificationType)) {
-            String productId = parameters.getOrDefault("productId", null);
-            String sizeId = parameters.getOrDefault("sizeId", null);
-            if (productId != null && sizeId != null) {
-                return restockNotificationRepository.findByProductIdAndSizeId(productId, sizeId)
-                        .map(RestockNotification::getMemberIds)
-                        .defaultIfEmpty(Collections.emptyList()); // restockNotificationRepository 조회 후 보낼 대상이 없다면
-            } else {
-                throw new ErrorResponseException("productId 혹은 sizeId가 지정되지 않았습니다.");
-            }
+            Long productId = Long.valueOf(parameters.getOrDefault("productId", null)); // 없으면 NumberFormatException
+            Long sizeId = Long.valueOf(parameters.getOrDefault("sizeId", null));
+            return restockNotificationRepository.findByProductIdAndSizeId(productId, sizeId)
+                    .map(restockNotification -> new ArrayList<>(restockNotification.getMemberIds()));
         }
         return Mono.just(Collections.emptyList());
     }
