@@ -6,8 +6,10 @@ spring:
       on-profile: local,dev,prod
   application:
     name: notification-service
+  jackson:
+    time-zone: Asia/Seoul
 management:
   endpoints:
     web:
       exposure:
-        include: health, info, refresh, busrefresh
+        include: health, info, refresh, busrefresh, prometheus

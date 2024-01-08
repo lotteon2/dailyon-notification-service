@@ -1,3 +1,4 @@
+# application-local.yml
 spring:
   config:
     activate:
@@ -9,14 +10,30 @@ spring:
     port: 5672
     username: guest
     password: guest
-  datasource:
 
   # mongodb settings
   data:
     mongodb:
       username: root
       password: 11111111
-      uri: mongodb://localhost:27017/notification-service
+      uri: mongodb://root:11111111@localhost:27017/notification-service?authSource=admin
+
+#  mongodb:
+#    embedded:
+#      version: 5.0.6
+
+#cloud:
+#  aws:
+#    credentials:
+#      access-key: "" # 실험용 개인계정 키
+#      secret-key: "" # 실험용 개인계정 키
+#    region:
+#      static: ap-northeast-2
+#    sqs:
+#      region: ap-northeast-1
+#    stack:
+#      auto: false
+
 
 eureka:
   client:
@@ -32,3 +49,6 @@ logging:
     org:
       hibernate:
         SQL: DEBUG
+      springframework:
+        cloud:
+          aws: DEBUG

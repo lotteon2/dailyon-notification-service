@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-deployment
+  namespace: prod
+  labels:
+    app: notification-service
+spec:
+  selector:
+    matchLabels:
+      app: notification-service
+  # 앱이 Ready 상태가 될 때까지 기다리는 시간
+  minReadySeconds: 10
+  # 롤링 업데이트:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      # 롤링 업데이트시 스케일아웃할 최대 pod 수
+      maxSurge: 1
+      maxUnavailable: 0
+  replicas: 1
+  template:
+    metadata:
+      name: notification-pod
+      labels:
+        app: notification-service
+    spec:
+      containers:
+        - name: notification-service
+          image: ${ECR_REGISTRY}/${AWS_ECR_REPOSITORY}:${IMAGE_TAG}
+          resources:
+            requests:
+              memory: "768Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "300m"
+          ports:
+            - containerPort: 8082
+          imagePullPolicy: IfNotPresent
+          # 애플리케이션이 시작된 뒤 초기화 작업이 마무리되어 준비되었는지 검사
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8082
+            initialDelaySeconds: 240
+            periodSeconds: 30
+            timeoutSeconds: 2
+          # 애플리케이션이 정상 상태를 유지하고 있는지 지속해서 검사
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8082
+            initialDelaySeconds: 240
+            periodSeconds: 30
+            timeoutSeconds: 2
+      # SIGTERM을 받아도 바로 종료되지 않고 일정 시간 뒤에 종료
+      terminationGracePeriodSeconds: 360
+      restartPolicy: Always
+      affinity:
+        nodeAffinity:
+          # Pod이 존재하지 않다가 처음으로 만들어지는 상태, 이미 실행중인데 nodeSelector가 node에서 제거된다면 계속 실행
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: type
+                    operator: In
+                    values:
+                      - App
+                  - key: size
+                    operator: In
+                    values:
+                      - Large
+                      - Medium
