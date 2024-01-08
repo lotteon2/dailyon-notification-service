@@ -74,13 +74,14 @@ public class NotificationData {
 
         String orderId = parameters.getOrDefault("orderId", "");
         String productName = parameters.getOrDefault("productName", "");
+        String sizeName = parameters.getOrDefault("sizeName", "");
         String productId = parameters.getOrDefault("productId", "");
         String point = parameters.getOrDefault("point", "");
         String nickname = parameters.getOrDefault("nickname", "");
 
         switch (notificationType) {
             case PRODUCT_RESTOCK:
-                return String.format("상품이름: %s 가 재입고 되었습니다.", productName);
+                return String.format("%s 상품의 %s 사이즈가 재입고되었습니다. 지금 확인해보세요!", productName, sizeName);
             case ORDER_COMPLETE:
                 return String.format("주문번호: %s 의 주문이 완료되었습니다.", orderId);
             case ORDER_SHIPPED:
