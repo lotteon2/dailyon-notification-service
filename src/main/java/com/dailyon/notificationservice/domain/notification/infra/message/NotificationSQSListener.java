@@ -43,7 +43,7 @@ public class NotificationSQSListener {
             NotificationData notificationData = NotificationData.fromRawData(rawNotificationData); // rawNotificationData -> 데이터 가공
 
             List<Long> existingMemberIds = sqsNotificationDto.getWhoToNotify();
-            Mono<List<Long>> memberIdsMono = notificationUtils.determineMemberIds( // 알림 수신대상 가공
+            Mono<List<Long>> memberIdsMono = notificationUtils.determineMemberIds( // 알림 수신대상 존재 여부에 따라 가공
                     rawNotificationData.getNotificationType(),
                     rawNotificationData.getParameters(),
                     existingMemberIds);
@@ -68,8 +68,35 @@ public class NotificationSQSListener {
             deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     public void consumeProductRestockNotificationCheckQueue(
             @Payload String message, @Headers Map<String, String> headers, Acknowledgment ack) {
-        log.warn(message);
-        ack.acknowledge();
+        try {
+            SQSNotificationDto sqsNotificationDto = objectMapper.readValue(message, SQSNotificationDto.class);
+            RawNotificationData rawNotificationData = sqsNotificationDto.getRawNotificationData();
+            NotificationData notificationData = NotificationData.fromRawData(rawNotificationData); // rawNotificationData -> 데이터 가공
+
+            List<Long> existingMemberIds = sqsNotificationDto.getWhoToNotify();
+            Mono<List<Long>> memberIdsMono = notificationUtils.determineMemberIds( // 알림 수신대상 존재 여부에 따라 가공
+                    rawNotificationData.getNotificationType(),
+                    rawNotificationData.getParameters(),
+                    existingMemberIds);
+
+            memberIdsMono
+                    .flatMap(memberIds -> sseNotificationService.onNotificationReceived(notificationData, memberIds))
+                    .then( Mono.defer(() -> {
+                        Long productId = Long.valueOf(rawNotificationData.getParameters().get("productId"));
+                        Long sizeId = Long.valueOf(rawNotificationData.getParameters().get("sizeId"));
+                        return sseNotificationService.clearProductRestockNotifications(productId, sizeId); // 저장, 발송처리 이후 지우는 로직 호출
+                    }))
+                    .subscribe(
+                            null, // onNext: not needed here
+                            error -> log.error("Error processing SQS message: {}", error.getMessage(), error),
+                            ack::acknowledge
+                    );
+        } catch (JsonProcessingException | ErrorResponseException processingException) {
+            log.error("Failed to parse SQS message: {}", message, processingException);
+            ack.acknowledge();
+        } catch (Exception e) {
+            log.error("Failed to parse SQS message: {}", message, e);
+        }
     }
 
     @SqsListener(
@@ -77,8 +104,30 @@ public class NotificationSQSListener {
             deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     public void consumeOrderShippedNotificationCheckQueue(
             @Payload String message, @Headers Map<String, String> headers, Acknowledgment ack) {
-        log.warn(message);
-        ack.acknowledge();
+        try {
+            SQSNotificationDto sqsNotificationDto = objectMapper.readValue(message, SQSNotificationDto.class);
+            RawNotificationData rawNotificationData = sqsNotificationDto.getRawNotificationData();
+            NotificationData notificationData = NotificationData.fromRawData(rawNotificationData); // rawNotificationData -> 데이터 가공
+
+            List<Long> existingMemberIds = sqsNotificationDto.getWhoToNotify();
+            Mono<List<Long>> memberIdsMono = notificationUtils.determineMemberIds( // 알림 수신대상 존재 여부에 따라 가공
+                    rawNotificationData.getNotificationType(),
+                    rawNotificationData.getParameters(),
+                    existingMemberIds);
+
+            memberIdsMono
+                    .flatMap(memberIds -> sseNotificationService.onNotificationReceived(notificationData, memberIds))
+                    .subscribe(
+                            null, // onNext: not needed here
+                            error -> log.error("Error processing SQS message: {}", error.getMessage(), error),
+                            ack::acknowledge
+                    );
+        } catch (JsonProcessingException | ErrorResponseException processingException) {
+            log.error("Failed to parse SQS message: {}", message, processingException);
+            ack.acknowledge();
+        } catch (Exception e) {
+            log.error("Failed to parse SQS message: {}", message, e);
+        }
     }
 
     @SqsListener(
@@ -86,8 +135,30 @@ public class NotificationSQSListener {
             deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     public void consumeOrderArrivedNotificationCheckQueue(
             @Payload String message, @Headers Map<String, String> headers, Acknowledgment ack) {
-        log.warn(message);
-        ack.acknowledge();
+        try {
+            SQSNotificationDto sqsNotificationDto = objectMapper.readValue(message, SQSNotificationDto.class);
+            RawNotificationData rawNotificationData = sqsNotificationDto.getRawNotificationData();
+            NotificationData notificationData = NotificationData.fromRawData(rawNotificationData); // rawNotificationData -> 데이터 가공
+
+            List<Long> existingMemberIds = sqsNotificationDto.getWhoToNotify();
+            Mono<List<Long>> memberIdsMono = notificationUtils.determineMemberIds( // 알림 수신대상 존재 여부에 따라 가공
+                    rawNotificationData.getNotificationType(),
+                    rawNotificationData.getParameters(),
+                    existingMemberIds);
+
+            memberIdsMono
+                    .flatMap(memberIds -> sseNotificationService.onNotificationReceived(notificationData, memberIds))
+                    .subscribe(
+                            null, // onNext: not needed here
+                            error -> log.error("Error processing SQS message: {}", error.getMessage(), error),
+                            ack::acknowledge
+                    );
+        } catch (JsonProcessingException | ErrorResponseException processingException) {
+            log.error("Failed to parse SQS message: {}", message, processingException);
+            ack.acknowledge();
+        } catch (Exception e) {
+            log.error("Failed to parse SQS message: {}", message, e);
+        }
     }
 
     @SqsListener(
@@ -95,8 +166,30 @@ public class NotificationSQSListener {
             deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     public void consumeAuctionEndNotificationCheckQueue(
             @Payload String message, @Headers Map<String, String> headers, Acknowledgment ack) {
-        log.warn(message);
-        ack.acknowledge();
+        try {
+            SQSNotificationDto sqsNotificationDto = objectMapper.readValue(message, SQSNotificationDto.class);
+            RawNotificationData rawNotificationData = sqsNotificationDto.getRawNotificationData();
+            NotificationData notificationData = NotificationData.fromRawData(rawNotificationData); // rawNotificationData -> 데이터 가공
+
+            List<Long> existingMemberIds = sqsNotificationDto.getWhoToNotify();
+            Mono<List<Long>> memberIdsMono = notificationUtils.determineMemberIds( // 알림 수신대상 존재 여부에 따라 가공
+                    rawNotificationData.getNotificationType(),
+                    rawNotificationData.getParameters(),
+                    existingMemberIds);
+
+            memberIdsMono
+                    .flatMap(memberIds -> sseNotificationService.onNotificationReceived(notificationData, memberIds))
+                    .subscribe(
+                            null, // onNext: not needed here
+                            error -> log.error("Error processing SQS message: {}", error.getMessage(), error),
+                            ack::acknowledge
+                    );
+        } catch (JsonProcessingException | ErrorResponseException processingException) {
+            log.error("Failed to parse SQS message: {}", message, processingException);
+            ack.acknowledge();
+        } catch (Exception e) {
+            log.error("Failed to parse SQS message: {}", message, e);
+        }
     }
 
     @SqsListener(
@@ -104,8 +197,30 @@ public class NotificationSQSListener {
             deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     public void consumeGiftReceivedNotificationCheckQueue(
             @Payload String message, @Headers Map<String, String> headers, Acknowledgment ack) {
-        log.warn(message);
-        ack.acknowledge();
+        try {
+            SQSNotificationDto sqsNotificationDto = objectMapper.readValue(message, SQSNotificationDto.class);
+            RawNotificationData rawNotificationData = sqsNotificationDto.getRawNotificationData();
+            NotificationData notificationData = NotificationData.fromRawData(rawNotificationData); // rawNotificationData -> 데이터 가공
+
+            List<Long> existingMemberIds = sqsNotificationDto.getWhoToNotify();
+            Mono<List<Long>> memberIdsMono = notificationUtils.determineMemberIds( // 알림 수신대상 존재 여부에 따라 가공
+                    rawNotificationData.getNotificationType(),
+                    rawNotificationData.getParameters(),
+                    existingMemberIds);
+
+            memberIdsMono
+                    .flatMap(memberIds -> sseNotificationService.onNotificationReceived(notificationData, memberIds))
+                    .subscribe(
+                            null, // onNext: not needed here
+                            error -> log.error("Error processing SQS message: {}", error.getMessage(), error),
+                            ack::acknowledge
+                    );
+        } catch (JsonProcessingException | ErrorResponseException processingException) {
+            log.error("Failed to parse SQS message: {}", message, processingException);
+            ack.acknowledge();
+        } catch (Exception e) {
+            log.error("Failed to parse SQS message: {}", message, e);
+        }
     }
 
     @SqsListener(
@@ -113,8 +228,30 @@ public class NotificationSQSListener {
             deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     public void consumePointsEarnedBySNSNotificationCheckQueue(
             @Payload String message, @Headers Map<String, String> headers, Acknowledgment ack) {
-        log.warn(message);
-        ack.acknowledge();
+        try {
+            SQSNotificationDto sqsNotificationDto = objectMapper.readValue(message, SQSNotificationDto.class);
+            RawNotificationData rawNotificationData = sqsNotificationDto.getRawNotificationData();
+            NotificationData notificationData = NotificationData.fromRawData(rawNotificationData); // rawNotificationData -> 데이터 가공
+
+            List<Long> existingMemberIds = sqsNotificationDto.getWhoToNotify();
+            Mono<List<Long>> memberIdsMono = notificationUtils.determineMemberIds( // 알림 수신대상 존재 여부에 따라 가공
+                    rawNotificationData.getNotificationType(),
+                    rawNotificationData.getParameters(),
+                    existingMemberIds);
+
+            memberIdsMono
+                    .flatMap(memberIds -> sseNotificationService.onNotificationReceived(notificationData, memberIds))
+                    .subscribe(
+                            null, // onNext: not needed here
+                            error -> log.error("Error processing SQS message: {}", error.getMessage(), error),
+                            ack::acknowledge
+                    );
+        } catch (JsonProcessingException | ErrorResponseException processingException) {
+            log.error("Failed to parse SQS message: {}", message, processingException);
+            ack.acknowledge();
+        } catch (Exception e) {
+            log.error("Failed to parse SQS message: {}", message, e);
+        }
     }
 
     @SqsListener(

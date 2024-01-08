@@ -131,4 +131,13 @@ public class SseNotificationService {
                 .flatMap(memberId -> sendSseNotificationToUser(data, memberId)).then();
     }
 
+    // TODO: 이 코드가 여기 있는게 맞을까요.. api로 호출되는것도 아니고.. 따로 파일 빼기도 애매하고
+    public Mono<Void> clearProductRestockNotifications(Long productId, Long sizeId) {
+        return restockNotificationRepository.findByProductIdAndSizeId(productId, sizeId)
+                .flatMap(restockNotification -> {
+                    restockNotification.getMemberIds().clear();
+                    return restockNotificationRepository.save(restockNotification);
+                }).then();
+    }
+
 }
