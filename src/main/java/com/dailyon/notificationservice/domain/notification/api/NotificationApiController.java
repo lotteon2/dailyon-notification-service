@@ -2,6 +2,7 @@ package com.dailyon.notificationservice.domain.notification.api;
 
 import com.dailyon.notificationservice.domain.notification.api.request.EnrollRestockRequest;
 import com.dailyon.notificationservice.domain.notification.document.NotificationTemplate;
+import com.dailyon.notificationservice.domain.notification.dto.HeartbeatServerSentEvent;
 import com.dailyon.notificationservice.domain.notification.dto.NotificationData;
 import com.dailyon.notificationservice.domain.notification.service.NotificationService;
 import com.dailyon.notificationservice.domain.notification.service.SseNotificationService;
@@ -21,6 +22,7 @@ import org.springframework.integration.support.MessageBuilder;
 import org.springframework.messaging.Message;
 
 import javax.validation.Valid;
+import java.time.Duration;
 
 @Slf4j
 @RestController
@@ -96,7 +98,15 @@ public class NotificationApiController {
     // 구독하기 - 테스트완료 (SQS와 통합한 테스트 - 완료)
     @GetMapping(value = "/subscription", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<NotificationData>> subscribeToNotifications(@RequestHeader Long memberId) {
-        return sseNotificationService.streamNotifications(memberId);
+//        log.info("SSE 연결" + "memberId: " + memberId);
+
+        Flux<ServerSentEvent<NotificationData>> notificationFlux = sseNotificationService.streamNotifications(memberId);
+        Flux<ServerSentEvent<NotificationData>> heartbeatFlux = Flux.interval(Duration.ofSeconds(15))
+                .map(tick -> HeartbeatServerSentEvent.getInstance()); // 반복적 송신 객체 싱글톤으로 처리
+
+        return Flux.merge(notificationFlux, heartbeatFlux)
+                .doOnError(e -> log.error("Error in SSE stream", e))
+                .doOnTerminate(() -> log.info("SSE stream for member {} 종료", memberId));
     }
 
 }
