@@ -15,6 +15,7 @@ import com.mongodb.client.model.Updates;
 import com.mongodb.client.model.WriteModel;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
 import org.springframework.data.mongodb.core.BulkOperations;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
@@ -35,6 +36,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SseNotificationService {
@@ -50,6 +52,8 @@ public class SseNotificationService {
     public Flux<ServerSentEvent<NotificationData>> streamNotifications(Long memberId) {
         Sinks.Many<ServerSentEvent<NotificationData>> sink = Sinks.many().multicast().onBackpressureBuffer();
         userSinks.put(memberId, sink);
+
+//        log.info(userSinks.toString());
 
         Consumer<Throwable> removeSinkConsumer = e -> userSinks.remove(memberId);
 

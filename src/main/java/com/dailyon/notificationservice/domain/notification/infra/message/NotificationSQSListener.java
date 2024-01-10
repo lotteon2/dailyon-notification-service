@@ -263,13 +263,11 @@ public class NotificationSQSListener {
         try {
             Long memberId = objectMapper.readValue(message, Long.class);
             notificationService.createInitialUserNotification(memberId)
-                    .subscribe(
-                            null,
-                            error -> log.error("Error processing message: {}", error.getMessage(), error),
-                            ack::acknowledge
-                    );
+                    .doOnError(error -> log.error("메세지 처리 도중 에러 발생 message: {}", error.getMessage(), error))
+                    .doOnSuccess(o -> ack.acknowledge())
+                    .subscribe();
         } catch (JsonProcessingException e) {
-            log.error("Error deserializing message: {}", e.getMessage(), e);
+            log.error("deserializing 중 에러 발생: {}", e.getMessage(), e);
         }
 
     }

@@ -8,8 +8,10 @@ import com.dailyon.notificationservice.domain.notification.dto.NotificationData;
 import com.dailyon.notificationservice.domain.notification.repository.NotificationTemplateRepository;
 import com.dailyon.notificationservice.domain.notification.repository.RestockNotificationRepository;
 import com.dailyon.notificationservice.domain.notification.repository.UserNotificationRepository;
+import com.mongodb.DuplicateKeyException;
 import lombok.RequiredArgsConstructor;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +24,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+@Slf4j
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
@@ -139,6 +142,12 @@ public class NotificationService {
                 .read(new HashSet<>())
                 .deleted(new HashSet<>())
                 .build();
-        return userNotificationRepository.insert(newUserNotification).then();
+        return userNotificationRepository.insert(newUserNotification)
+                .then()
+                .onErrorResume(DuplicateKeyException.class, e -> {
+                    // 중복 키 예외 처리
+                    log.error("UserNotification의 memberId {} 중복.", memberId, e);
+                    return Mono.empty(); // 혹은 적절한 대응 메커니즘
+                });
     }
 }
