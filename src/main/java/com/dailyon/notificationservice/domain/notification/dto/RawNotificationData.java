@@ -4,11 +4,13 @@ import com.dailyon.notificationservice.domain.notification.document.enums.Notifi
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.Map;
 
 @Data
 @Builder
+@NoArgsConstructor
 @AllArgsConstructor
 public class RawNotificationData {
     /*
