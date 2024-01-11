@@ -161,6 +161,38 @@ public class NotificationSQSListener {
         }
     }
 
+
+    @SqsListener(
+            value = "order-canceled_notification_queue",
+            deletionPolicy = SqsMessageDeletionPolicy.NEVER)
+    public void consumeOrderCanceledNotificationCheckQueue(
+            @Payload String message, @Headers Map<String, String> headers, Acknowledgment ack) {
+        try {
+            SQSNotificationDto sqsNotificationDto = objectMapper.readValue(message, SQSNotificationDto.class);
+            RawNotificationData rawNotificationData = sqsNotificationDto.getRawNotificationData();
+            NotificationData notificationData = NotificationData.fromRawData(rawNotificationData); // rawNotificationData -> 데이터 가공
+
+            List<Long> existingMemberIds = sqsNotificationDto.getWhoToNotify();
+            Mono<List<Long>> memberIdsMono = notificationUtils.determineMemberIds( // 알림 수신대상 존재 여부에 따라 가공
+                    rawNotificationData.getNotificationType(),
+                    rawNotificationData.getParameters(),
+                    existingMemberIds);
+
+            memberIdsMono
+                    .flatMap(memberIds -> sseNotificationService.onNotificationReceived(notificationData, memberIds))
+                    .subscribe(
+                            null, // onNext: not needed here
+                            error -> log.error("Error processing SQS message: {}", error.getMessage(), error),
+                            ack::acknowledge
+                    );
+        } catch (JsonProcessingException | ErrorResponseException processingException) {
+            log.error("Failed to parse SQS message: {}", message, processingException);
+            ack.acknowledge();
+        } catch (Exception e) {
+            log.error("Failed to parse SQS message: {}", message, e);
+        }
+    }
+
     @SqsListener(
             value = "auction-end-notification-queue",
             deletionPolicy = SqsMessageDeletionPolicy.NEVER)
