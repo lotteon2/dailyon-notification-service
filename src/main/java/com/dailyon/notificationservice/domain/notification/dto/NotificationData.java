@@ -54,6 +54,7 @@ public class NotificationData {
             case ORDER_COMPLETE:
             case ORDER_SHIPPED:
             case ORDER_ARRIVED:
+            case ORDER_CANCELED:
                 return baseUrl + "/my-page/order-history";
             case GIFT_RECEIVED:
                 return baseUrl + "/my-page/gifts";
@@ -73,7 +74,12 @@ public class NotificationData {
         }
 
         String orderId = parameters.getOrDefault("orderId", "");
+        String totalAmount = parameters.getOrDefault("totalAmount", "");
         String productName = parameters.getOrDefault("productName", "");
+
+        String cancelAmount = parameters.getOrDefault("cancelAmount", "");;
+        String productQuantity = parameters.getOrDefault("productQuantity", "");;
+
         String sizeName = parameters.getOrDefault("sizeName", "");
         String productId = parameters.getOrDefault("productId", "");
         String point = parameters.getOrDefault("point", "");
@@ -83,11 +89,14 @@ public class NotificationData {
             case PRODUCT_RESTOCK:
                 return String.format("%s 상품의 %s 사이즈가 재입고되었습니다. 지금 확인해보세요!", productName, sizeName);
             case ORDER_COMPLETE:
-                return String.format("주문번호: %s 의 주문이 완료되었습니다.", orderId);
+                String orderCompletePostfix = !totalAmount.isEmpty() ? "주문금액: " + totalAmount: "";
+                return String.format("주문번호: %s 의 주문이 완료되었습니다. %s", orderId, orderCompletePostfix);
             case ORDER_SHIPPED:
                 return String.format("주문번호: %s 의 배송이 시작되었습니다.", orderId);
             case ORDER_ARRIVED:
                 return String.format("주문번호: %s 의 배송이 완료되었습니다.", orderId);
+            case ORDER_CANCELED:
+                return String.format("주문이 취소되었습니다. \n 환불금액: %s, 상품명: %s, 개수: %s", cancelAmount, productName, productQuantity);
             case GIFT_RECEIVED:
                 String giftPrefix = !nickname.isEmpty() ? nickname + "님을 위한 " : "";
                 return String.format("%s선물이 도착했습니다. 선물함을 확인해주세요.", giftPrefix);
