@@ -123,6 +123,7 @@ public class SseNotificationService {
         return Mono.fromRunnable(() -> {
             Optional.ofNullable(userSinks.get(memberId)).ifPresent(sink -> {
                 sink.tryEmitNext(ServerSentEvent.builder(data)
+                    .data(data)
                     .event("notification-event")
                     .build())
                     .orThrow();
