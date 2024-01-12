@@ -50,12 +50,16 @@ public class SseNotificationService {
 
     // 구독하기. 구독 SSE 객체에는 client에게 줄 notificationData를 넣어준다.
     public Flux<ServerSentEvent<NotificationData>> streamNotifications(Long memberId) {
+        log.info("Creating new SSE Sink for memberId: {}", memberId);
         Sinks.Many<ServerSentEvent<NotificationData>> sink = Sinks.many().multicast().onBackpressureBuffer();
         userSinks.put(memberId, sink);
 
 //        log.info(userSinks.toString());
 
-        Consumer<Throwable> removeSinkConsumer = e -> userSinks.remove(memberId);
+        Consumer<Throwable> removeSinkConsumer = e -> {
+            userSinks.remove(memberId);
+            log.info("Remove SSE Sink for memberId: {} due to error", memberId, e);
+        };
 
         return sink.asFlux()
                 .doOnCancel(() -> removeSinkConsumer.accept(null))
@@ -90,6 +94,7 @@ public class SseNotificationService {
 
 
     private Mono<Void> updateMultipleUserNotifications(List<Long> memberIds, String notificationTemplateId) {
+        log.info("Starting bulk update for UserNotification with templateId: {}", notificationTemplateId);
         // 'unread' 필드에 notificationTemplateId를 추가하는 BSON 업데이트 정의
         Document updateDocument = new Document("$addToSet", new Document("unread", notificationTemplateId));
 
@@ -120,8 +125,10 @@ public class SseNotificationService {
 
 
     private Mono<Void> sendSseNotificationToUser(NotificationData data, Long memberId) {
+        log.info("단일 유저에게 발송합니다.: {}", memberId);
         return Mono.fromRunnable(() -> {
             Optional.ofNullable(userSinks.get(memberId)).ifPresent(sink -> {
+                log.info("memberId: {}를 찾았습니다. 이제 메세지 발송합니다.", memberId);
                 sink.tryEmitNext(ServerSentEvent.builder(data)
                     .data(data)
                     .event("notification-event")
@@ -132,6 +139,7 @@ public class SseNotificationService {
     }
 
     private Mono<Void> sendSseNotificationToAllUsers(NotificationData data) {
+        log.info("모든 유저에게 메세지 발송할것입니다.");
         return Flux.fromIterable(new ArrayList<>(userSinks.keySet()))
                 .flatMap(memberId -> sendSseNotificationToUser(data, memberId)).then();
     }
