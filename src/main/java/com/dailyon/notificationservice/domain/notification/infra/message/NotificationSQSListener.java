@@ -36,17 +36,21 @@ public class NotificationSQSListener {
             deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     public void consumeOrderCompleteNotificationCheckQueue(
             @Payload String message, @Headers Map<String, String> headers, Acknowledgment ack) {
-
+            log.info("주문 완료 메세지 도착");
         try {
             SQSNotificationDto sqsNotificationDto = objectMapper.readValue(message, SQSNotificationDto.class);
             RawNotificationData rawNotificationData = sqsNotificationDto.getRawNotificationData();
             NotificationData notificationData = NotificationData.fromRawData(rawNotificationData); // rawNotificationData -> 데이터 가공
-
+        //     log.info(sqsNotificationDto.toString());
+        //     log.info(rawNotificationData.toString());
+        //     log.info(notificationData.toString());
             List<Long> existingMemberIds = sqsNotificationDto.getWhoToNotify();
             Mono<List<Long>> memberIdsMono = notificationUtils.determineMemberIds( // 알림 수신대상 존재 여부에 따라 가공
                     rawNotificationData.getNotificationType(),
                     rawNotificationData.getParameters(),
                     existingMemberIds);
+        //     log.info(existingMemberIds.toString());
+        //     log.info(memberIdsMono.toString());
 
             memberIdsMono
                     .flatMap(memberIds -> sseNotificationService.onNotificationReceived(notificationData, memberIds))
@@ -62,6 +66,8 @@ public class NotificationSQSListener {
             log.error("Failed to parse SQS message: {}", message, e);
         }
     }
+
+
 
     @SqsListener(
             value = "product-restock-notification-queue",
@@ -163,7 +169,7 @@ public class NotificationSQSListener {
 
 
     @SqsListener(
-            value = "order-canceled_notification_queue",
+            value = "order-canceled-notification-queue",
             deletionPolicy = SqsMessageDeletionPolicy.NEVER)
     public void consumeOrderCanceledNotificationCheckQueue(
             @Payload String message, @Headers Map<String, String> headers, Acknowledgment ack) {
@@ -230,15 +236,21 @@ public class NotificationSQSListener {
     public void consumeGiftReceivedNotificationCheckQueue(
             @Payload String message, @Headers Map<String, String> headers, Acknowledgment ack) {
         try {
+            log.info("선물도착");
             SQSNotificationDto sqsNotificationDto = objectMapper.readValue(message, SQSNotificationDto.class);
             RawNotificationData rawNotificationData = sqsNotificationDto.getRawNotificationData();
             NotificationData notificationData = NotificationData.fromRawData(rawNotificationData); // rawNotificationData -> 데이터 가공
+        //     log.info(sqsNotificationDto.toString());
+        //     log.info(rawNotificationData.toString());
+        //     log.info(notificationData.toString());
 
             List<Long> existingMemberIds = sqsNotificationDto.getWhoToNotify();
             Mono<List<Long>> memberIdsMono = notificationUtils.determineMemberIds( // 알림 수신대상 존재 여부에 따라 가공
                     rawNotificationData.getNotificationType(),
                     rawNotificationData.getParameters(),
                     existingMemberIds);
+        //     log.info(existingMemberIds.toString());
+        //     log.info(memberIdsMono.toString());
 
             memberIdsMono
                     .flatMap(memberIds -> sseNotificationService.onNotificationReceived(notificationData, memberIds))
