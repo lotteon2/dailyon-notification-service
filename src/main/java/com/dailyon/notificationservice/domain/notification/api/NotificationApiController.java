@@ -98,24 +98,18 @@ public class NotificationApiController {
     // 구독하기 - 테스트완료 (SQS와 통합한 테스트 - 완료)
     @GetMapping(value = "/subscription", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<NotificationData>> subscribeToNotifications(@RequestHeader Long memberId) {
-       log.info("SSE 연결 시작" + "memberId: " + memberId);
-
-       Flux<ServerSentEvent<NotificationData>> notificationFlux = sseNotificationService.streamNotifications(memberId);
+        log.info("SSE 연결 시작" + "memberId: " + memberId);
+        
+        Flux<ServerSentEvent<NotificationData>> notificationFlux = sseNotificationService.streamNotifications(memberId);
         log.info("Notification stream Flux 생성됨 - memberId: {}", memberId);
 
-        return notificationFlux
+        Flux<ServerSentEvent<NotificationData>> heartbeatFlux = Flux.interval(Duration.ofSeconds(15))
+                .map(tick -> HeartbeatServerSentEvent.getInstance())
+                .doOnNext(tick -> log.info("Hearbeat event sent - memberId: {}", memberId)); // 반복적 송신 객체 싱글톤으로 처리
+
+        return Flux.merge(notificationFlux, heartbeatFlux)
                 .doOnError(e -> log.error("Error in SSE stream for member {}: {}", memberId, e.getMessage(), e))
                 .doOnTerminate(() -> log.info("SSE stream for member {} 종료", memberId));
-        // Flux<ServerSentEvent<NotificationData>> notificationFlux = sseNotificationService.streamNotifications(memberId);
-        // log.info("Notification stream Flux 생성됨 - memberId: {}", memberId);
-
-        // Flux<ServerSentEvent<NotificationData>> heartbeatFlux = Flux.interval(Duration.ofSeconds(15))
-        //         .map(tick -> HeartbeatServerSentEvent.getInstance())
-        //         .doOnNext(tick -> log.info("Hearbeat event sent - memberId: {}", memberId)); // 반복적 송신 객체 싱글톤으로 처리
-
-        // return Flux.merge(notificationFlux, heartbeatFlux)
-        //         .doOnError(e -> log.error("Error in SSE stream for member {}: {}", memberId, e.getMessage(), e))
-        //         .doOnTerminate(() -> log.info("SSE stream for member {} 종료", memberId));
     }
 
 }
