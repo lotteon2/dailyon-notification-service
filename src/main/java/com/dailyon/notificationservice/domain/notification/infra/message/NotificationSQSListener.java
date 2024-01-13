@@ -301,7 +301,7 @@ public class NotificationSQSListener {
     @SqsListener(
             value = "user-created-queue",
             deletionPolicy = SqsMessageDeletionPolicy.NEVER)
-    public void consumeFirstLoginCheckQueue(
+    public void consumeUserCreatedCheckQueue(
             @Payload String message, @Headers Map<String, String> headers, Acknowledgment ack)
             throws JsonProcessingException {
         try {
