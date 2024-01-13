@@ -15,6 +15,11 @@ spring:
       username: root
       password: 11111111
       uri: mongodb://root:11111111@notification-db-service:27017/notification-service?authSource=admin
+  redis:
+    cluster:
+      nodes: redis-cluster-0.redis-cluster.prod.svc.cluster.local:6379,redis-cluster-1.redis-cluster.prod.svc.cluster.local:6379,redis-cluster-2.redis-cluster.prod.svc.cluster.local:6379,redis-cluster-3.redis-cluster.prod.svc.cluster.local:6379,redis-cluster-4.redis-cluster.prod.svc.cluster.local:6379,redis-cluster-5.redis-cluster.prod.svc.cluster.local:6379
+      max-redirects: 3
+    password:
   zipkin:
     base-url: http://zipkin-service:9411/
     enabled: true
