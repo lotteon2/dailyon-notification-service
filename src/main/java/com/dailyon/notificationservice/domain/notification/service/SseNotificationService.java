@@ -1,29 +1,21 @@
 package com.dailyon.notificationservice.domain.notification.service;
 
-import com.dailyon.notificationservice.common.exceptions.ErrorResponseException;
+
 import com.dailyon.notificationservice.domain.notification.document.NotificationTemplate;
 import com.dailyon.notificationservice.domain.notification.document.UserNotification;
-import com.dailyon.notificationservice.domain.notification.document.RestockNotification;
-import com.dailyon.notificationservice.domain.notification.document.enums.NotificationType;
 import com.dailyon.notificationservice.domain.notification.dto.NotificationData;
 import com.dailyon.notificationservice.domain.notification.repository.NotificationTemplateRepository;
 import com.dailyon.notificationservice.domain.notification.repository.RestockNotificationRepository;
 import com.dailyon.notificationservice.domain.notification.repository.UserNotificationRepository;
 
 import com.mongodb.client.model.UpdateOneModel;
-import com.mongodb.client.model.Updates;
 import com.mongodb.client.model.WriteModel;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
-import org.springframework.data.mongodb.core.BulkOperations;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Update;
-import org.springframework.data.mongodb.core.query.Query;
-import com.mongodb.client.model.Filters;
-import org.bson.conversions.Bson;
+
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Sinks;
@@ -46,7 +38,6 @@ public class SseNotificationService {
     private final ReactiveMongoTemplate reactiveMongoTemplate;
 
     private final Map<Long, Sinks.Many<ServerSentEvent<NotificationData>>> userSinks = new ConcurrentHashMap<>();
-    // ConcurrentHashMap을 쓰는것과 Map으로 선언하는것의 차이?
 
     // 구독하기. 구독 SSE 객체에는 client에게 줄 notificationData를 넣어준다.
     public Flux<ServerSentEvent<NotificationData>> streamNotifications(Long memberId) {
@@ -54,7 +45,7 @@ public class SseNotificationService {
         Sinks.Many<ServerSentEvent<NotificationData>> sink = Sinks.many().multicast().onBackpressureBuffer();
         userSinks.put(memberId, sink);
 
-//        log.info(userSinks.toString());
+        // log.info(userSinks.toString());
 
         Consumer<Throwable> removeSinkConsumer = e -> {
             userSinks.remove(memberId);
@@ -143,7 +134,6 @@ public class SseNotificationService {
                 .flatMap(memberId -> sendSseNotificationToUser(data, memberId)).then();
     }
 
-    // TODO: 이 코드가 여기 있는게 맞을까요.. api로 호출되는것도 아니고.. 따로 파일 빼기도 애매하고
     public Mono<Void> clearProductRestockNotifications(Long productId, Long sizeId) {
         return restockNotificationRepository.findByProductIdAndSizeId(productId, sizeId)
                 .flatMap(restockNotification -> {
