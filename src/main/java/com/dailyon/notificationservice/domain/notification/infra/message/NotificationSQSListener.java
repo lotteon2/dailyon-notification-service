@@ -240,17 +240,18 @@ public class NotificationSQSListener {
             SQSNotificationDto sqsNotificationDto = objectMapper.readValue(message, SQSNotificationDto.class);
             RawNotificationData rawNotificationData = sqsNotificationDto.getRawNotificationData();
             NotificationData notificationData = NotificationData.fromRawData(rawNotificationData); // rawNotificationData -> 데이터 가공
-        //     log.info(sqsNotificationDto.toString());
-        //     log.info(rawNotificationData.toString());
-        //     log.info(notificationData.toString());
+            log.info("가공한 데이터를 이제 보여줍니다.");
+            log.info(sqsNotificationDto.toString());
+             log.info(rawNotificationData.toString());
+             log.info(notificationData.toString());
 
             List<Long> existingMemberIds = sqsNotificationDto.getWhoToNotify();
             Mono<List<Long>> memberIdsMono = notificationUtils.determineMemberIds( // 알림 수신대상 존재 여부에 따라 가공
                     rawNotificationData.getNotificationType(),
                     rawNotificationData.getParameters(),
                     existingMemberIds);
-        //     log.info(existingMemberIds.toString());
-        //     log.info(memberIdsMono.toString());
+             log.info("원래 정해준 id" + existingMemberIds.toString());
+             log.info("로직 걸쳐서 바뀐 id" + memberIdsMono.toString());
 
             memberIdsMono
                     .flatMap(memberIds -> sseNotificationService.onNotificationReceived(notificationData, memberIds))
