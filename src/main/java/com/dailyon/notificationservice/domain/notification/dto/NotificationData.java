@@ -55,11 +55,11 @@ public class NotificationData {
             case ORDER_SHIPPED:
             case ORDER_ARRIVED:
             case ORDER_CANCELED:
-                return baseUrl + "/my-page/order-history";
+                return baseUrl + "/order-history";
             case GIFT_RECEIVED:
-                return baseUrl + "/my-page/gifts";
+                return baseUrl + "/gifts";
             case POINTS_EARNED_SNS:
-                return baseUrl + "/my-page/point-history";
+                return baseUrl + "/point-history";
             case AUCTION_END:
                 return "";
             default:
