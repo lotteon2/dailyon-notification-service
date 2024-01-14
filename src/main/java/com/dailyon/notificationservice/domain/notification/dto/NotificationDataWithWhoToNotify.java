@@ -14,11 +14,13 @@ import java.util.List;
 public class NotificationDataWithWhoToNotify {
     List<Long> whoToNotify;
     NotificationData notificationData;
+    private Long timeStamp;
 
     public static NotificationDataWithWhoToNotify create(List<Long> whoToNotify, NotificationData notificationData) {
         return NotificationDataWithWhoToNotify.builder()
                 .whoToNotify(whoToNotify)
                 .notificationData(notificationData)
+                .timeStamp(System.currentTimeMillis())
                 .build();
     }
 }
