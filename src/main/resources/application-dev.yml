@@ -15,7 +15,7 @@ spring:
       username: root
       password: 11111111
       uri: mongodb://root:11111111@localhost:27017/notification-service?authSource=admin
-      auto-index-creation: true
+      auto-index-creation: false
   redis:
     host: redis-cluster
     port: 6379

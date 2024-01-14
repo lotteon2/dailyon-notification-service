@@ -4,6 +4,7 @@ import com.dailyon.notificationservice.domain.notification.api.request.EnrollRes
 import com.dailyon.notificationservice.domain.notification.document.NotificationTemplate;
 import com.dailyon.notificationservice.domain.notification.dto.HeartbeatServerSentEvent;
 import com.dailyon.notificationservice.domain.notification.dto.NotificationData;
+import com.dailyon.notificationservice.domain.notification.dto.WelcomeServerSentEvent;
 import com.dailyon.notificationservice.domain.notification.service.NotificationService;
 import com.dailyon.notificationservice.domain.notification.service.SseNotificationService;
 import lombok.RequiredArgsConstructor;
@@ -99,6 +100,8 @@ public class NotificationApiController {
     @GetMapping(value = "/subscription", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<NotificationData>> subscribeToNotifications(@RequestHeader Long memberId) {
         log.info("SSE 연결 시작" + "memberId: " + memberId);
+
+        Flux<ServerSentEvent<NotificationData>> welcomeFlux = Flux.just(WelcomeServerSentEvent.getInstance());
         
         Flux<ServerSentEvent<NotificationData>> notificationFlux = sseNotificationService.streamNotifications(memberId);
         log.info("Notification stream Flux 생성됨 - memberId: {}", memberId);
@@ -107,7 +110,7 @@ public class NotificationApiController {
                 .map(tick -> HeartbeatServerSentEvent.getInstance())
                 .doOnNext(tick -> log.info("Hearbeat event sent - memberId: {}", memberId)); // 반복적 송신 객체 싱글톤으로 처리
 
-        return Flux.merge(notificationFlux, heartbeatFlux)
+        return Flux.concat(welcomeFlux, Flux.merge(notificationFlux, heartbeatFlux))
                 .doOnError(e -> log.error("Error in SSE stream for member {}: {}", memberId, e.getMessage(), e))
                 .doOnTerminate(() -> log.info("SSE stream for member {} 종료", memberId));
     }

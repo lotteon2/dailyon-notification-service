@@ -7,6 +7,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 
+import java.text.NumberFormat;
+import java.util.Locale;
 import java.util.Map;
 
 @Data
@@ -46,22 +48,20 @@ public class NotificationData {
     }
 
     private static String generateLinkUrl(NotificationType notificationType, Map<String, String> parameters) {
-        String baseUrl = "https://dailyon.lotteedu.com";
 
         switch (notificationType) {
             case PRODUCT_RESTOCK:
-                return baseUrl + "/products/" + parameters.getOrDefault("productId", "");
+                return "/products/" + parameters.getOrDefault("productId", "");
             case ORDER_COMPLETE:
             case ORDER_SHIPPED:
             case ORDER_ARRIVED:
             case ORDER_CANCELED:
-                return baseUrl + "/order-history";
+                return "/order-history";
             case GIFT_RECEIVED:
-                return baseUrl + "/gifts";
+                return "/gifts";
             case POINTS_EARNED_SNS:
-                return baseUrl + "/point-history";
+                return "/point-history";
             case AUCTION_END:
-                return "";
             default:
                 return ""; // 매칭 안되면 빈문자열로 처리. FE에서 빈문자열일때 href를 주지않음.
         }
@@ -87,10 +87,16 @@ public class NotificationData {
 
         switch (notificationType) {
             case PRODUCT_RESTOCK:
-                return String.format("%s 상품의 %s 사이즈가 재입고되었습니다. 지금 확인해보세요!", productName, sizeName);
+                return String.format("%s 상품의 %s 사이즈가 재입고되었습니다. \n지금 확인해보세요!", productName, sizeName);
             case ORDER_COMPLETE:
-                String orderCompletePostfix = !totalAmount.isEmpty() ? "주문금액: " + totalAmount: "";
-                return String.format("주문번호: %s 의 주문이 완료되었습니다. %s", orderId, orderCompletePostfix);
+                String formattedTotalAmount = "";
+                if (!totalAmount.isEmpty()) {
+                    formattedTotalAmount = formatCurrency(totalAmount);
+                    String orderCompletePostfix = "주문금액: " + formattedTotalAmount + "원";
+                    return String.format("주문번호: %s 의 주문이 완료되었습니다.\n %s", orderId, orderCompletePostfix);
+                } else {
+                    return String.format("주문번호: %s 의 주문이 완료되었습니다.", orderId);
+                }
             case ORDER_SHIPPED:
                 return String.format("주문번호: %s 의 배송이 시작되었습니다.", orderId);
             case ORDER_ARRIVED:
@@ -108,5 +114,11 @@ public class NotificationData {
                 return "";
         }
 
+    }
+
+    private static String formatCurrency(String amount) {
+        long parsedAmount = Long.parseLong(amount);
+        NumberFormat numberFormat = NumberFormat.getNumberInstance(Locale.KOREA);
+        return numberFormat.format(parsedAmount);
     }
 }

@@ -1,19 +1,14 @@
 package com.dailyon.notificationservice.domain.notification.service;
 
 
-import com.dailyon.notificationservice.domain.notification.document.NotificationTemplate;
-import com.dailyon.notificationservice.domain.notification.document.UserNotification;
 import com.dailyon.notificationservice.domain.notification.dto.NotificationData;
 import com.dailyon.notificationservice.domain.notification.repository.NotificationTemplateRepository;
 import com.dailyon.notificationservice.domain.notification.repository.RestockNotificationRepository;
 import com.dailyon.notificationservice.domain.notification.repository.UserNotificationRepository;
 
-import com.mongodb.client.model.UpdateOneModel;
-import com.mongodb.client.model.WriteModel;
-import com.mongodb.reactivestreams.client.MongoCollection;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.bson.Document;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 
 import org.springframework.http.codec.ServerSentEvent;
@@ -26,7 +21,7 @@ import reactor.core.publisher.Mono;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
+
 
 @Slf4j
 @Service
