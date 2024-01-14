@@ -25,6 +25,7 @@ public class RedisConfig {
 
     @Bean
     @Profile(value = "!prod")
+    @Primary
     public ReactiveRedisConnectionFactory standaloneRedisConnectionFactory() {
         RedisStandaloneConfiguration redisStandaloneConfiguration = new RedisStandaloneConfiguration();
         redisStandaloneConfiguration.setHostName(
@@ -38,6 +39,7 @@ public class RedisConfig {
 
     @Bean
     @Profile("prod")
+    @Primary
     public ReactiveRedisConnectionFactory clusterRedisConnectionFactory() {
         RedisClusterConfiguration clusterConfiguration = new RedisClusterConfiguration();
         clusterConfiguration.setClusterNodes(
