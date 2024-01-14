@@ -89,6 +89,7 @@ public class NotificationProcessingService {
         if (unconnectedMemberIds.isEmpty()) {
             return Mono.empty(); // 비어있으니 무시
         }
+//        log.info("publishUnconnectedUserNotifications 입장 - 미연결 memberIds: {} \n 데이터: {}", unconnectedMemberIds, notificationData);
         return Mono.fromCallable(() -> {
                     NotificationDataWithWhoToNotify redisNotificationDto = NotificationDataWithWhoToNotify.create(unconnectedMemberIds, notificationData);
                     return objectMapper.writeValueAsString(redisNotificationDto);
@@ -110,7 +111,7 @@ public class NotificationProcessingService {
     }
 
     private Mono<Void> updateMultipleUserNotifications(List<Long> memberIds, String notificationTemplateId) {
-        log.info("Starting bulk update for UserNotification with templateId: {}", notificationTemplateId);
+//        log.info("Starting bulk update for UserNotification with templateId: {}", notificationTemplateId);
         // 'unread' 필드에 notificationTemplateId를 추가하는 BSON 업데이트 정의
         Document updateDocument = new Document("$addToSet", new Document("unread", notificationTemplateId));
 
