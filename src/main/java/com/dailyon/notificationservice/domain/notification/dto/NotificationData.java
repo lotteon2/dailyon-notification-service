@@ -82,7 +82,7 @@ public class NotificationData {
 
         String sizeName = parameters.getOrDefault("sizeName", "");
         String productId = parameters.getOrDefault("productId", "");
-        String point = parameters.getOrDefault("point", "");
+        String pointEarned = parameters.getOrDefault("pointEarned", "");
         String nickname = parameters.getOrDefault("nickname", "");
 
         switch (notificationType) {
@@ -105,9 +105,9 @@ public class NotificationData {
                 return String.format("주문이 취소되었습니다. \n 환불금액: %s, 상품명: %s, 개수: %s", cancelAmount, productName, productQuantity);
             case GIFT_RECEIVED:
                 String giftPrefix = !nickname.isEmpty() ? nickname + "님을 위한 " : "";
-                return String.format("%s선물이 도착했습니다. 선물함을 확인해주세요.", giftPrefix);
+                return String.format("%s선물이 도착했습니다. \n선물함을 확인해주세요.", giftPrefix);
             case POINTS_EARNED_SNS:
-                return String.format("OOTD 게시글을 통한 상품 판매로 포인트가 적립되었습니다: %s P", point);
+                return String.format("OOTD 게시글을 통한 상품 판매로 포인트가 적립되었습니다: %sP", pointEarned);
             case AUCTION_END:
                 return "참여하신 경매가 종료되었습니다. 결과를 확인해주세요.";
             default:

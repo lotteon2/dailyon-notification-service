@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.lettuce.core.RedisBusyException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.stream.*;
 
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
@@ -33,6 +34,11 @@ public class RedisStreamNotificationService {
 
     private static final String CONSUMER_GROUP_NAME = "notification-group";
 
+    /*
+    init뒤 구독정보 초기화 로직
+    initializeConsumerGroup를 해보고, 결과와 관계없이(then) getLastStreamEntryId 통해 streams의 lastRecordId 구함.
+    이후, lastEntryId부터 구독 시작. (서버 인스턴스 실행시 이전에 쌓인 데이터는 무시하고 현재 시각부터 들어오는 데이터에 대한 SSE 공유를 위함)
+     */
     public RedisStreamNotificationService(
             ReactiveRedisTemplate<String, String> reactiveRedisTemplate,
             ObjectMapper objectMapper,
@@ -43,23 +49,54 @@ public class RedisStreamNotificationService {
 
         Mono.just(NotificationConfig.NOTIFICATIONS_STREAM_KEY)
                 .flatMap(this::initializeConsumerGroup)
-                .subscribe(result -> log.info("Consumer group initialized or already exists."),
-                        error -> log.error("Error initializing consumer group", error));
-        consumeNotifications(); // bean 등록하면서 구독 시작
-    }
-    private Mono<String> initializeConsumerGroup(String streamKey) {
-        // Consumer Group 생성
-        return reactiveRedisTemplate.opsForStream().createGroup(streamKey, ReadOffset.latest(), CONSUMER_GROUP_NAME)
-                .doOnError(e -> log.info("Consumer Group 이미 존재, 새로 생성안함."))
-                .onErrorResume(RedisBusyException.class, e -> Mono.empty()); // Ignore RedisBusyException
+                .then(getLastStreamEntryId(NotificationConfig.NOTIFICATIONS_STREAM_KEY))
+                .flatMap(lastEntryId -> consumeNotificationsFrom(CONSUMER_GROUP_NAME, NotificationConfig.NOTIFICATIONS_STREAM_KEY, lastEntryId))
+                .subscribe(result -> log.info("redis streams 구독 시작합니다."),
+                        error -> log.error("redis streams 구독에 실패했습니다.", error));
     }
 
-    public Mono<Long> trimStream(String key, long maxLength) {
+
+    private Mono<Boolean> initializeConsumerGroup(String streamKey) {
         return reactiveRedisTemplate.opsForStream()
-                .trim(key, maxLength);
-        // spring boot 버전이 낮아서 .trim(key, StreamTrimOptions.trim().maxLen(maxLength)).next(); 못 씀.
+                .createGroup(streamKey, ReadOffset.latest(), CONSUMER_GROUP_NAME)
+                .thenReturn(true) // 성공 시 true 반환
+                .onErrorResume(RedisBusyException.class, e -> {
+                    log.info("Consumer group 이미 존재 stream key: {}", streamKey);
+                    return Mono.just(false); // 실패 시 false 반환
+                });
     }
 
+    private Mono<RecordId> getLastStreamEntryId(String streamKey) {
+        return reactiveRedisTemplate.opsForStream()
+                .range(streamKey, Range.unbounded())
+                .reduce((first, second) -> second) // 스트림의 마지막 요소를 추출함.
+                .map(MapRecord::getId) // 마지막 MapRecord의 ID를 가져옴.
+                .switchIfEmpty(Mono.just(RecordId.autoGenerate())); // 스트림이 비어있을 경우 자동 생성된 ID를 사용.
+    }
+
+    private Mono<Void> consumeNotificationsFrom(String groupName, String streamKey, RecordId lastEntryId) {
+        String consumerName = UUID.randomUUID().toString();
+        StreamReadOptions readOptions = StreamReadOptions.empty().count(50);
+        StreamOffset<String> streamOffset = StreamOffset.create(streamKey, ReadOffset.from(lastEntryId));
+
+        Flux<MapRecord<String, Object, Object>> messageFlux = reactiveRedisTemplate
+                .opsForStream()
+                .read(Consumer.from(groupName, consumerName), readOptions, streamOffset);
+
+        // 메시지 처리 로직과 반복, 딜레이 적용
+        return messageFlux
+                .doOnNext(this::processRecord)
+                .doOnError(this::processError)
+                .repeat() // 스트림이 완료되면 재시작.
+                .then();
+//                .delayElements(Duration.ofSeconds(1)) // 과한 폴링 방지
+//                .subscribe();
+
+    }
+
+    /*
+     * 10분마다 redis stream 크기 정리하는 로직
+     */
     @Scheduled(fixedRate = 600000) // 10분마다
     public void scheduledStreamTrim() {
         log.info("redis 정리");
@@ -73,24 +110,15 @@ public class RedisStreamNotificationService {
                 });
     }
 
-    private void consumeNotifications() {
-//        log.info("Redis 구독 시작");
-        String consumerName = UUID.randomUUID().toString();
-        StreamOffset<String> streamOffset = StreamOffset.create(NotificationConfig.NOTIFICATIONS_STREAM_KEY, ReadOffset.lastConsumed());
-        StreamReadOptions readOptions = StreamReadOptions.empty().count(50);
-
-        Flux<MapRecord<String, Object, Object>> messageFlux = reactiveRedisTemplate
-                .opsForStream()
-                .read(Consumer.from(CONSUMER_GROUP_NAME, consumerName), readOptions, streamOffset);
-
-        messageFlux
-                .doOnNext(this::processRecord)
-                .doOnError(this::processError)
-                .repeat() // 스트림이 완료되면 재시작.
-                .delayElements(Duration.ofSeconds(1)) // 과한 polling 방지 1초간격
-                .subscribe();
+    public Mono<Long> trimStream(String key, long maxLength) {
+        return reactiveRedisTemplate.opsForStream()
+                .trim(key, maxLength);
+        // spring boot 버전이 낮아서 .trim(key, StreamTrimOptions.trim().maxLen(maxLength)).next(); 못 씀.
     }
 
+    /*
+     * stream으로 들어온 데이터 처리로직
+     */
     private void processRecord(MapRecord<String, Object, Object> record) {
         log.info("Redis 메시지 도착");
         try {
