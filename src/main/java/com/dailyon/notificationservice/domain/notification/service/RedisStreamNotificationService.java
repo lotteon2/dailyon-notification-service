@@ -33,6 +33,7 @@ public class RedisStreamNotificationService {
     private final SseNotificationService sseNotificationService;
 
     private static final String CONSUMER_GROUP_NAME = "notification-group";
+    private static final String UNIQUE_CONSUMER_GROUP_NAME = CONSUMER_GROUP_NAME + "-" + UUID.randomUUID();
 
     /*
     init뒤 구독정보 초기화 로직
@@ -49,24 +50,25 @@ public class RedisStreamNotificationService {
 
         Mono.just(NotificationConfig.NOTIFICATIONS_STREAM_KEY)
                 .flatMap(this::initializeConsumerGroup)
-                .then(getLastStreamEntryId(NotificationConfig.NOTIFICATIONS_STREAM_KEY))
-                .flatMap(lastEntryId -> consumeNotificationsFrom(CONSUMER_GROUP_NAME, NotificationConfig.NOTIFICATIONS_STREAM_KEY, lastEntryId))
+                .flatMap(success -> getLastStreamEntryId(NotificationConfig.NOTIFICATIONS_STREAM_KEY))
+                .flatMap(lastEntryId -> consumeNotificationsFrom(UNIQUE_CONSUMER_GROUP_NAME, NotificationConfig.NOTIFICATIONS_STREAM_KEY))
                 .subscribe(result -> log.info("redis streams 구독 시작합니다."),
-                        error -> log.error("redis streams 구독에 실패했습니다.", error));
+                        error -> log.error("redis streams 구독에 실패했습니다...", error));
     }
 
 
     private Mono<Boolean> initializeConsumerGroup(String streamKey) {
+        log.info("initializeConsumerGroup 진입");
         return reactiveRedisTemplate.opsForStream()
-                .createGroup(streamKey, ReadOffset.latest(), CONSUMER_GROUP_NAME)
+                .createGroup(streamKey, ReadOffset.latest(), UNIQUE_CONSUMER_GROUP_NAME)
                 .thenReturn(true) // 성공 시 true 반환
-                .onErrorResume(RedisBusyException.class, e -> {
-                    log.info("Consumer group 이미 존재 stream key: {}", streamKey);
-                    return Mono.just(false); // 실패 시 false 반환
+                .onErrorResume(e -> {
+                    return Mono.just(false);
                 });
     }
 
     private Mono<RecordId> getLastStreamEntryId(String streamKey) {
+        log.info("getLastStreamEntryId 진입");
         return reactiveRedisTemplate.opsForStream()
                 .range(streamKey, Range.unbounded())
                 .reduce((first, second) -> second) // 스트림의 마지막 요소를 추출함.
@@ -74,10 +76,12 @@ public class RedisStreamNotificationService {
                 .switchIfEmpty(Mono.just(RecordId.autoGenerate())); // 스트림이 비어있을 경우 자동 생성된 ID를 사용.
     }
 
-    private Mono<Void> consumeNotificationsFrom(String groupName, String streamKey, RecordId lastEntryId) {
+    private Mono<Void> consumeNotificationsFrom(String groupName, String streamKey) {
+        log.info("consumeNotificationsFrom 진입");
         String consumerName = UUID.randomUUID().toString();
         StreamReadOptions readOptions = StreamReadOptions.empty().count(50);
-        StreamOffset<String> streamOffset = StreamOffset.create(streamKey, ReadOffset.from(lastEntryId));
+        // Use the '>' ID to read new messages for the group
+        StreamOffset<String> streamOffset = StreamOffset.create(streamKey, ReadOffset.lastConsumed());
 
         Flux<MapRecord<String, Object, Object>> messageFlux = reactiveRedisTemplate
                 .opsForStream()
@@ -149,13 +153,12 @@ public class RedisStreamNotificationService {
 
     private void sendAcknowledgment(MapRecord<String, Object, Object> record) {
         reactiveRedisTemplate.opsForStream()
-                .acknowledge(NotificationConfig.NOTIFICATIONS_STREAM_KEY, CONSUMER_GROUP_NAME, record.getId().getValue())
+                .acknowledge(NotificationConfig.NOTIFICATIONS_STREAM_KEY, UNIQUE_CONSUMER_GROUP_NAME, record.getId().getValue())
                 .subscribe();
     }
 
     private void processError(Throwable err) {
         log.error("Redis Stream 처리 중 에러: ", err);
     }
-
 
 }
