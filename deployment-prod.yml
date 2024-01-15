@@ -53,7 +53,7 @@ spec:
             periodSeconds: 30
             timeoutSeconds: 2
       # SIGTERM을 받아도 바로 종료되지 않고 일정 시간 뒤에 종료
-      terminationGracePeriodSeconds: 360
+      terminationGracePeriodSeconds: 420
       restartPolicy: Always
       affinity:
         nodeAffinity:
