@@ -6,7 +6,6 @@ import com.dailyon.notificationservice.domain.notification.dto.NotificationDataW
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.lettuce.core.RedisBusyException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.stream.*;
@@ -19,10 +18,11 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 
-import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+
+import static com.dailyon.notificationservice.config.NotificationConfig.UNIQUE_CONSUMER_IDENTIFIER;
 
 @Slf4j
 @Service
@@ -31,9 +31,6 @@ public class RedisStreamNotificationService {
     private final ReactiveRedisTemplate<String, String> reactiveRedisTemplate;
     private final ObjectMapper objectMapper;
     private final SseNotificationService sseNotificationService;
-
-    private static final String CONSUMER_GROUP_NAME = "notification-group";
-    private static final String UNIQUE_CONSUMER_GROUP_NAME = CONSUMER_GROUP_NAME + "-" + UUID.randomUUID();
 
     /*
     init뒤 구독정보 초기화 로직
@@ -51,7 +48,7 @@ public class RedisStreamNotificationService {
         Mono.just(NotificationConfig.NOTIFICATIONS_STREAM_KEY)
                 .flatMap(this::initializeConsumerGroup)
                 .flatMap(success -> getLastStreamEntryId(NotificationConfig.NOTIFICATIONS_STREAM_KEY))
-                .flatMap(lastEntryId -> consumeNotificationsFrom(UNIQUE_CONSUMER_GROUP_NAME, NotificationConfig.NOTIFICATIONS_STREAM_KEY))
+                .flatMap(lastEntryId -> consumeNotificationsFrom(UNIQUE_CONSUMER_IDENTIFIER, NotificationConfig.NOTIFICATIONS_STREAM_KEY))
                 .subscribe(result -> log.info("redis streams 구독 시작합니다."),
                         error -> log.error("redis streams 구독에 실패했습니다...", error));
     }
@@ -60,7 +57,7 @@ public class RedisStreamNotificationService {
     private Mono<Boolean> initializeConsumerGroup(String streamKey) {
         log.info("initializeConsumerGroup 진입");
         return reactiveRedisTemplate.opsForStream()
-                .createGroup(streamKey, ReadOffset.latest(), UNIQUE_CONSUMER_GROUP_NAME)
+                .createGroup(streamKey, ReadOffset.latest(), UNIQUE_CONSUMER_IDENTIFIER)
                 .thenReturn(true) // 성공 시 true 반환
                 .onErrorResume(e -> {
                     return Mono.just(false);
@@ -153,7 +150,7 @@ public class RedisStreamNotificationService {
 
     private void sendAcknowledgment(MapRecord<String, Object, Object> record) {
         reactiveRedisTemplate.opsForStream()
-                .acknowledge(NotificationConfig.NOTIFICATIONS_STREAM_KEY, UNIQUE_CONSUMER_GROUP_NAME, record.getId().getValue())
+                .acknowledge(NotificationConfig.NOTIFICATIONS_STREAM_KEY, UNIQUE_CONSUMER_IDENTIFIER, record.getId().getValue())
                 .subscribe();
     }
 
