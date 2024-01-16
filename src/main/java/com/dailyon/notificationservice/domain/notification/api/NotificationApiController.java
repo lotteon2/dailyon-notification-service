@@ -6,6 +6,7 @@ import com.dailyon.notificationservice.domain.notification.dto.HeartbeatServerSe
 import com.dailyon.notificationservice.domain.notification.dto.NotificationData;
 import com.dailyon.notificationservice.domain.notification.dto.WelcomeServerSentEvent;
 import com.dailyon.notificationservice.domain.notification.service.NotificationService;
+import com.dailyon.notificationservice.domain.notification.service.RedisPubSubService;
 import com.dailyon.notificationservice.domain.notification.service.SseNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +34,7 @@ public class NotificationApiController {
 
     private final NotificationService notificationService;
     private final SseNotificationService sseNotificationService;
-
+    private final RedisPubSubService redisPubSubService;
     // SQS 발행 테스트용 임시 코드
 //    private final QueueMessagingTemplate queueMessagingTemplate;
 //    private final String notificationQueue = "order-complete-notification-queue";
@@ -103,12 +104,18 @@ public class NotificationApiController {
 
         Flux<ServerSentEvent<NotificationData>> welcomeFlux = Flux.just(WelcomeServerSentEvent.getInstance());
         
-        Flux<ServerSentEvent<NotificationData>> notificationFlux = sseNotificationService.streamNotifications(memberId);
-        log.info("Notification stream Flux 생성됨 - memberId: {}", memberId);
+        Flux<ServerSentEvent<NotificationData>> notificationFlux = sseNotificationService.streamNotifications(memberId)
+                .doOnCancel(() -> log.info("Notification stream 취소 - memberId: {}", memberId))
+                .doFinally(signalType -> log.info("signal type {} 와 함께 Notification stream 종료 memberId: {}", signalType, memberId));
+
+//        log.info("Notification stream Flux 생성됨 - memberId: {}", memberId);
+
+        redisPubSubService.publishMemberConnection(memberId).subscribe();
 
         Flux<ServerSentEvent<NotificationData>> heartbeatFlux = Flux.interval(Duration.ofSeconds(15))
+                .take(240) // 1시간 송신 후 객체 정리 - 45동안 연결없으면 client에서 자동으로 재연결
                 .map(tick -> HeartbeatServerSentEvent.getInstance())
-                .doOnNext(tick -> log.info("Hearbeat event sent - memberId: {}", memberId)); // 반복적 송신 객체 싱글톤으로 처리
+                .doOnNext(tick -> log.info("Heartbeat event sent - memberId: {}", memberId));
 
         return Flux.concat(welcomeFlux, Flux.merge(notificationFlux, heartbeatFlux))
                 .doOnError(e -> log.error("Error in SSE stream for member {}: {}", memberId, e.getMessage(), e))
