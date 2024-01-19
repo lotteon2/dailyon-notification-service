@@ -113,7 +113,7 @@ public class NotificationApiController {
         redisPubSubService.publishMemberConnection(memberId).subscribe();
 
         Flux<ServerSentEvent<NotificationData>> heartbeatFlux = Flux.interval(Duration.ofSeconds(15))
-                .take(240) // 1시간 송신 후 객체 정리 - 45동안 연결없으면 client에서 자동으로 재연결
+                .take(80) // 20분 송신 후 객체 정리 - 45초동안 연결없으면 client에서 자동으로 재연결
                 .map(tick -> HeartbeatServerSentEvent.getInstance())
                 .doOnNext(tick -> log.info("Heartbeat event sent - memberId: {}", memberId));
 
