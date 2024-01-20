@@ -36,6 +36,8 @@ public class NotificationUtils {
             Long sizeId = Long.valueOf(parameters.getOrDefault("sizeId", null));
             return restockNotificationRepository.findByProductIdAndSizeId(productId, sizeId)
                     .map(restockNotification -> new ArrayList<>(restockNotification.getMemberIds()));
+        } else if (NotificationType.AUCTION_END.equals(notificationType)) {
+            // TODO: memberIdㄹ부러오는 method 사용 ( Redis 에서 읽어오자. )
         }
         return Mono.just(Collections.emptyList());
     }
