@@ -62,6 +62,7 @@ public class NotificationData {
             case POINTS_EARNED_SNS:
                 return "/point-history";
             case AUCTION_END:
+                return "/events";
             default:
                 return ""; // 매칭 안되면 빈문자열로 처리. FE에서 빈문자열일때 href를 주지않음.
         }
