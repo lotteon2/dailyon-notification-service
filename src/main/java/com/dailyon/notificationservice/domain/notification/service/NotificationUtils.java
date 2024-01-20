@@ -18,6 +18,7 @@ import java.util.Map;
 public class NotificationUtils {
     private final SseNotificationService sseNotificationService;
     private final RestockNotificationRepository restockNotificationRepository;
+    private final RedisUtilService redisUtilService;
 
     /**
      * existingMemberIds가 null or empty -> determineMemberIdsForNotification로 적절한 대상으로 대체, 아니라면 existingMemberIds 그대로 사용
@@ -36,6 +37,10 @@ public class NotificationUtils {
             Long sizeId = Long.valueOf(parameters.getOrDefault("sizeId", null));
             return restockNotificationRepository.findByProductIdAndSizeId(productId, sizeId)
                     .map(restockNotification -> new ArrayList<>(restockNotification.getMemberIds()));
+        } else if (NotificationType.AUCTION_END.equals(notificationType)) {
+            String auctionId = parameters.getOrDefault("auctionId", null);
+            return redisUtilService.fetchAllAuctionMemberIds(auctionId)
+                    .collectList();
         }
         return Mono.just(Collections.emptyList());
     }
