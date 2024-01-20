@@ -38,7 +38,8 @@ public class NotificationUtils {
             return restockNotificationRepository.findByProductIdAndSizeId(productId, sizeId)
                     .map(restockNotification -> new ArrayList<>(restockNotification.getMemberIds()));
         } else if (NotificationType.AUCTION_END.equals(notificationType)) {
-            return redisUtilService.fetchAllAuctionMemberIds()
+            String auctionId = parameters.getOrDefault("auctionId", null);
+            return redisUtilService.fetchAllAuctionMemberIds(auctionId)
                     .collectList();
         }
         return Mono.just(Collections.emptyList());

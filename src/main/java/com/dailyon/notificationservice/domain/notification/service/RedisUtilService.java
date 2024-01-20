@@ -16,9 +16,9 @@ import reactor.core.publisher.Flux;
 public class RedisUtilService {
     private final ReactiveRedisTemplate<String, String> reactiveRedisTemplate;
 
-    public Flux<Long> fetchAllAuctionMemberIds() {
+    public Flux<Long> fetchAllAuctionMemberIds(String auctionId) {
         return reactiveRedisTemplate.opsForZSet()
-                .reverseRangeByScore(NotificationConfig.AUCTION_REDIS_KEY, Range.<Double>unbounded(), RedisZSetCommands.Limit.unlimited())
+                .reverseRangeByScore(NotificationConfig.AUCTION_REDIS_KEY + auctionId, Range.<Double>unbounded(), RedisZSetCommands.Limit.unlimited())
                 .map(Long::valueOf); // Assuming the elements in ZSet are stored as Strings that can be parsed to Longs
     }
 
