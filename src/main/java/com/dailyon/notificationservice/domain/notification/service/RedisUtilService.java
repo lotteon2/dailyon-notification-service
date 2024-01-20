@@ -14,12 +14,11 @@ import reactor.core.publisher.Flux;
 @RequiredArgsConstructor
 @Service
 public class RedisUtilService {
-    private final ReactiveRedisTemplate<String, String> reactiveRedisTemplate;
+    private final ReactiveRedisTemplate<String, Long> reactiveRedisTemplate;
 
     public Flux<Long> fetchAllAuctionMemberIds(String auctionId) {
         return reactiveRedisTemplate.opsForZSet()
-                .reverseRangeByScore(NotificationConfig.AUCTION_REDIS_KEY + auctionId, Range.<Double>unbounded(), RedisZSetCommands.Limit.unlimited())
-                .map(Long::valueOf); // Assuming the elements in ZSet are stored as Strings that can be parsed to Longs
+                .reverseRangeByScore(auctionId, Range.<Double>unbounded(), RedisZSetCommands.Limit.unlimited());
     }
 
 
