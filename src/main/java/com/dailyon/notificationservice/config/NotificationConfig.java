@@ -11,4 +11,5 @@ public class NotificationConfig {
 
     public static final String CONSUMER_GROUP_NAME = "notification-group";
     public static final String UNIQUE_CONSUMER_IDENTIFIER = CONSUMER_GROUP_NAME + "-" + UUID.randomUUID();
+    public static final String AUCTION_REDIS_KEY = "auction";
 }
