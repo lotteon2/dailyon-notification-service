@@ -18,4 +18,5 @@ public class NotificationServiceApplication {
   public void setTimezoneToSeoul() {
     TimeZone.setDefault(TimeZone.getTimeZone("Asia/Seoul"));
   }
+
 }
